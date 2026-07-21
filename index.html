@@ -114,7 +114,7 @@
     color:var(--ink);
   }
   .add-form input:focus{outline:none; border-color:var(--accent);}
-  .add-form button{
+  .add-form button[type="submit"]{
     grid-column:1/-1;
     margin-top:6px;
     padding:12px;
@@ -128,10 +128,11 @@
     cursor:pointer;
     transition:background .15s;
   }
-  .add-form button:hover{background:var(--accent);}
+  .add-form button[type="submit"]:hover{background:var(--accent);}
   .add-form .msg{grid-column:1/-1; font-size:13px; color:var(--accent); min-height:16px;}
 
   .seg{display:flex; gap:6px;}
+  .cp-seg{flex-wrap:wrap;}
   .seg-btn{
     padding:9px 16px;
     border:1px solid var(--line);
@@ -231,6 +232,10 @@
     background:#FDEDE9;
     color:#D14B32;
   }
+  .kw.cp{
+    background:#F1EAFB;
+    color:#7A3FC2;
+  }
   .del-btn{
     background:none;border:none;color:var(--ink-soft);
     font-size:12px;cursor:pointer;align-self:flex-end;
@@ -267,6 +272,7 @@
     <button data-mode="author">작가</button>
     <button data-mode="genre">장르</button>
     <button data-mode="pairing">공수</button>
+    <button data-mode="cp">CP</button>
   </div>
 
   <details class="add-box">
@@ -291,6 +297,19 @@
       <div>
         <label>공수 키워드 (쉼표로 구분)</label>
         <input type="text" id="f_pairing" placeholder="예: 유공, 순정남수, 서로공수" autocomplete="off">
+      </div>
+
+      <div class="full">
+        <label>CP (복수 선택 가능)</label>
+        <div class="seg cp-seg" id="cpSeg">
+          <button type="button" class="seg-btn" data-val="섷윤">섷윤</button>
+          <button type="button" class="seg-btn" data-val="몽윦">몽윦</button>
+          <button type="button" class="seg-btn" data-val="솽윦">솽윦</button>
+          <button type="button" class="seg-btn" data-val="낫윤">낫윤</button>
+          <button type="button" class="seg-btn" data-val="밍윦">밍윦</button>
+          <button type="button" class="seg-btn" data-val="웡윤">웡윤</button>
+          <button type="button" class="seg-btn" data-val="쫑윦">쫑윦</button>
+        </div>
       </div>
 
       <div class="full">
@@ -360,9 +379,24 @@
   const lengthSeg = document.getElementById("lengthSeg");
   const statusSeg = document.getElementById("statusSeg");
   const lengthExtra = document.getElementById("lengthExtra");
+  const cpSeg = document.getElementById("cpSeg");
 
   let lengthType = "단편";
   let statusType = "완결";
+  let selectedCp = [];
+
+  cpSeg.addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if(!btn) return;
+    const val = btn.dataset.val;
+    if(selectedCp.includes(val)){
+      selectedCp = selectedCp.filter(v => v !== val);
+      btn.classList.remove("active");
+    } else {
+      selectedCp.push(val);
+      btn.classList.add("active");
+    }
+  });
 
   lengthSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -410,15 +444,18 @@
     const t = term.toLowerCase();
     const genre = (post.genreKeywords || post.keywords || []).join(" ").toLowerCase();
     const pairing = (post.pairingKeywords || []).join(" ").toLowerCase();
+    const cp = (post.cp || []).join(" ").toLowerCase();
     if(mode === "title") return (post.title || "").toLowerCase().includes(t);
     if(mode === "author") return (post.author || "").toLowerCase().includes(t);
     if(mode === "genre") return genre.includes(t);
     if(mode === "pairing") return pairing.includes(t);
+    if(mode === "cp") return cp.includes(t);
     // all
     return (post.title||"").toLowerCase().includes(t)
       || (post.author||"").toLowerCase().includes(t)
       || genre.includes(t)
-      || pairing.includes(t);
+      || pairing.includes(t)
+      || cp.includes(t);
   }
 
   function render(){
@@ -504,6 +541,7 @@
 
       addChipRow(genreList, "genre", "장르");
       addChipRow(pairingList, "pairing", "공수");
+      addChipRow(post.cp || [], "cp", "CP");
 
       const del = document.createElement("button");
       del.className = "del-btn";
@@ -542,7 +580,7 @@
     try{
       await addDoc(postsRef, {
         title, author, link, genreKeywords, pairingKeywords,
-        lengthType, episodes, status,
+        lengthType, episodes, status, cp: selectedCp,
         createdAt: serverTimestamp()
       });
       addForm.reset();
@@ -554,6 +592,8 @@
       [...statusSeg.children].forEach(b => b.classList.remove("active"));
       statusSeg.children[0].classList.add("active");
       statusType = "완결";
+      [...cpSeg.children].forEach(b => b.classList.remove("active"));
+      selectedCp = [];
       formMsg.textContent = "등록 완료!";
       setTimeout(() => formMsg.textContent = "", 1500);
       await loadPosts();
