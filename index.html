@@ -393,6 +393,8 @@
   .badge.done{background:#E8F5EA; color:#2E7D32;}
   .badge.age19{background:#2A2A2A; color:#fff;}
   .badge.age15{background:#FDECC8; color:#9A5B00;}
+  .badge.lang{background:var(--accent-soft); color:var(--accent);}
+  .badge.site{background:#F1F1F1; color:var(--ink-soft);}
   .tag-line{
     display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 0;
     font-size:13px; line-height:1.7;
@@ -465,6 +467,14 @@
     <button data-age="15">15금</button>
     <button data-age="19">19금</button>
   </div>
+  <div class="filter-tabs" id="langTabs">
+    <button data-lang="all" class="active">언어 전체</button>
+    <button data-lang="한국어">한국어</button>
+    <button data-lang="영어">영어</button>
+    <button data-lang="일본어">일본어</button>
+    <button data-lang="중국어">중국어</button>
+    <button data-lang="기타">기타</button>
+  </div>
 
   <details class="add-box" id="addBox">
     <summary id="addBoxSummary">새 글 등록하기</summary>
@@ -480,6 +490,20 @@
       <div>
         <label>링크</label>
         <input type="url" id="f_link" required placeholder="https://..." autocomplete="off">
+      </div>
+      <div>
+        <label>게재 사이트</label>
+        <input type="text" id="f_site" placeholder="예: AO3, 조아라, 왓패드, 블로그" autocomplete="off">
+      </div>
+      <div class="full">
+        <label>원문 언어</label>
+        <div class="seg" id="langSeg">
+          <button type="button" class="seg-btn active" data-val="한국어">한국어</button>
+          <button type="button" class="seg-btn" data-val="영어">영어</button>
+          <button type="button" class="seg-btn" data-val="일본어">일본어</button>
+          <button type="button" class="seg-btn" data-val="중국어">중국어</button>
+          <button type="button" class="seg-btn" data-val="기타">기타</button>
+        </div>
       </div>
       <div>
         <label>장르 키워드 (쉼표로 구분)</label>
@@ -618,6 +642,8 @@
   const cancelEditBtn = document.getElementById("cancelEditBtn");
   const ageSeg = document.getElementById("ageSeg");
   const ageTabs = document.getElementById("ageTabs");
+  const langSeg = document.getElementById("langSeg");
+  const langTabs = document.getElementById("langTabs");
 
   let lengthType = "단편";
   let statusType = "완결";
@@ -625,6 +651,8 @@
   let editingId = null;
   let ageFilter = "all"; // all | 19 | all-ages
   let ageValue = "all-ages"; // form state: 19 | all-ages
+  let langFilter = "all"; // all | 한국어 | 영어 | ...
+  let langValue = "한국어"; // form state
 
   ageSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -643,11 +671,31 @@
     render();
   });
 
+  langSeg.addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if(!btn) return;
+    [...langSeg.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    langValue = btn.dataset.val;
+  });
+
+  langTabs.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    [...langTabs.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    langFilter = btn.dataset.lang;
+    render();
+  });
+
   function startEdit(post){
     editingId = post.id;
     document.getElementById("f_title").value = post.title || "";
     document.getElementById("f_author").value = post.author || "";
     document.getElementById("f_link").value = post.link || "";
+    document.getElementById("f_site").value = post.site || "";
+    langValue = post.language || "한국어";
+    [...langSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === langValue));
     document.getElementById("f_genre").value = (post.genreKeywords || post.keywords || []).join(", ");
     document.getElementById("f_pairing").value = (post.pairingKeywords || []).join(", ");
 
@@ -686,6 +734,9 @@
     [...ageSeg.children].forEach(b => b.classList.remove("active"));
     ageSeg.children[0].classList.add("active");
     ageValue = "all-ages";
+    [...langSeg.children].forEach(b => b.classList.remove("active"));
+    langSeg.children[0].classList.add("active");
+    langValue = "한국어";
     editingId = null;
     addBoxSummary.textContent = "새 글 등록하기";
     submitBtn.textContent = "등록하기";
@@ -774,6 +825,7 @@
     const term = searchInput.value.trim();
     let filtered = allPosts.filter(p => matches(p, term));
     if(ageFilter !== "all") filtered = filtered.filter(p => (p.age || "all-ages") === ageFilter);
+    if(langFilter !== "all") filtered = filtered.filter(p => (p.language || "한국어") === langFilter);
 
     countRow.textContent = `총 ${allPosts.length}편 중 ${filtered.length}편`;
     listEl.innerHTML = "";
@@ -833,6 +885,18 @@
         ageBadge.className = "badge age15";
         ageBadge.textContent = "15금";
         badgeRow.appendChild(ageBadge);
+      }
+      if(post.language && post.language !== "한국어"){
+        const langBadge = document.createElement("span");
+        langBadge.className = "badge lang";
+        langBadge.textContent = post.language;
+        badgeRow.appendChild(langBadge);
+      }
+      if(post.site){
+        const siteBadge = document.createElement("span");
+        siteBadge.className = "badge site";
+        siteBadge.textContent = post.site;
+        badgeRow.appendChild(siteBadge);
       }
       card.appendChild(badgeRow);
 
@@ -897,6 +961,7 @@
     const title = document.getElementById("f_title").value.trim();
     const author = document.getElementById("f_author").value.trim();
     const link = document.getElementById("f_link").value.trim();
+    const site = document.getElementById("f_site").value.trim();
     const genreKeywords = document.getElementById("f_genre").value
       .split(",").map(s => s.trim()).filter(Boolean);
     const pairingKeywords = document.getElementById("f_pairing").value
@@ -914,7 +979,7 @@
     formMsg.textContent = editingId ? "수정 중…" : "등록 중…";
     try{
       const payload = {
-        title, author, link, genreKeywords, pairingKeywords,
+        title, author, link, site, language: langValue, genreKeywords, pairingKeywords,
         lengthType, episodes, status, cp: selectedCp, age: ageValue
       };
       if(editingId){
