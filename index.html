@@ -465,6 +465,7 @@
     <button data-lang="중국어">중국어</button>
     <button data-lang="러시아어">러시아어</button>
     <button data-lang="프랑스어">프랑스어</button>
+    <button data-lang="포르투갈어">포르투갈어</button>
   </div>
 
   <details class="add-box" id="addBox">
@@ -482,9 +483,13 @@
         <label>링크</label>
         <input type="url" id="f_link" required placeholder="https://..." autocomplete="off">
       </div>
-      <div>
+      <div class="full">
         <label>게재 사이트</label>
-        <input type="text" id="f_site" placeholder="예: AO3, 조아라, 왓패드, 블로그" autocomplete="off">
+        <div class="seg" id="siteSeg">
+          <button type="button" class="seg-btn" data-val="AO3">AO3</button>
+          <button type="button" class="seg-btn" data-val="픽북">픽북</button>
+          <button type="button" class="seg-btn" data-val="웨이보">웨이보</button>
+        </div>
       </div>
       <div class="full">
         <label>원문 언어</label>
@@ -493,6 +498,7 @@
           <button type="button" class="seg-btn" data-val="중국어">중국어</button>
           <button type="button" class="seg-btn" data-val="러시아어">러시아어</button>
           <button type="button" class="seg-btn" data-val="프랑스어">프랑스어</button>
+          <button type="button" class="seg-btn" data-val="포르투갈어">포르투갈어</button>
         </div>
       </div>
       <div>
@@ -632,6 +638,7 @@
   const ageTabs = document.getElementById("ageTabs");
   const langSeg = document.getElementById("langSeg");
   const langTabs = document.getElementById("langTabs");
+  const siteSeg = document.getElementById("siteSeg");
 
   let lengthType = "단편";
   let statusType = "완결";
@@ -639,8 +646,9 @@
   let editingId = null;
   let ageFilter = "all"; // all | 19 | all-ages
   let ageValue = "all-ages"; // form state: 19 | all-ages
-  let langFilter = "all"; // all | 영어 | 중국어 | 러시아어 | 프랑스어
+  let langFilter = "all"; // all | 영어 | 중국어 | 러시아어 | 프랑스어 | 포르투갈어
   let langValue = null; // form state: null = 한국어(기본, 미선택)
+  let siteValue = null; // form state: AO3 | 픽북 | 웨이보 | null
 
   ageSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -681,12 +689,26 @@
     render();
   });
 
+  siteSeg.addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if(!btn) return;
+    const alreadyActive = btn.classList.contains("active");
+    [...siteSeg.children].forEach(b => b.classList.remove("active"));
+    if(alreadyActive){
+      siteValue = null;
+    } else {
+      btn.classList.add("active");
+      siteValue = btn.dataset.val;
+    }
+  });
+
   function startEdit(post){
     editingId = post.id;
     document.getElementById("f_title").value = post.title || "";
     document.getElementById("f_author").value = post.author || "";
     document.getElementById("f_link").value = post.link || "";
-    document.getElementById("f_site").value = post.site || "";
+    siteValue = post.site || null;
+    [...siteSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === siteValue));
     langValue = post.language || null;
     [...langSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === langValue));
     document.getElementById("f_genre").value = (post.genreKeywords || post.keywords || []).join(", ");
@@ -729,6 +751,8 @@
     ageValue = "all-ages";
     [...langSeg.children].forEach(b => b.classList.remove("active"));
     langValue = null;
+    [...siteSeg.children].forEach(b => b.classList.remove("active"));
+    siteValue = null;
     editingId = null;
     addBoxSummary.textContent = "새 글 등록하기";
     submitBtn.textContent = "등록하기";
@@ -935,7 +959,7 @@
     const title = document.getElementById("f_title").value.trim();
     const author = document.getElementById("f_author").value.trim();
     const link = document.getElementById("f_link").value.trim();
-    const site = document.getElementById("f_site").value.trim();
+    const site = siteValue;
     const genreKeywords = document.getElementById("f_genre").value
       .split(",").map(s => s.trim()).filter(Boolean);
     const pairingKeywords = document.getElementById("f_pairing").value
