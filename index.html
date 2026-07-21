@@ -28,7 +28,14 @@
 
   .wrap{max-width:760px;margin:0 auto;padding:64px 24px 120px;}
 
-  header{margin-bottom:40px;}
+  header{
+    margin-bottom:40px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+  }
+  .header-text{flex:1;}
   h1{
     font-family:'Pretendard', sans-serif;
     font-size:26px;
@@ -38,6 +45,24 @@
     letter-spacing:-0.02em;
   }
   .sub{color:var(--ink-soft);font-size:14px;line-height:1.6;max-width:520px;}
+
+  .ext-link{
+    flex-shrink:0;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 14px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--card);
+    color:var(--ink);
+    font-size:13px;
+    font-weight:600;
+    text-decoration:none;
+    white-space:nowrap;
+    transition:border-color .15s, color .15s;
+  }
+  .ext-link:hover{border-color:var(--accent); color:var(--accent);}
 
   .search-row{
     display:flex; gap:10px; margin-bottom:36px;
@@ -129,6 +154,18 @@
     transition:background .15s;
   }
   .add-form button[type="submit"]:hover{background:var(--accent);}
+  .add-form-cancel{
+    grid-column:1/-1;
+    padding:10px;
+    background:none;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--ink-soft);
+    font-family:inherit;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .add-form-cancel:hover{border-color:var(--ink-soft); color:var(--ink);}
   .add-form .msg{grid-column:1/-1; font-size:13px; color:var(--accent); min-height:16px;}
 
   .seg{display:flex; gap:6px;}
@@ -203,45 +240,43 @@
   }
   .badge-row{display:flex; gap:6px; flex-wrap:wrap;}
   .badge{
-    font-size:11.5px;
-    padding:3px 9px;
-    border-radius:6px;
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:5px;
     font-weight:600;
     background:#F0F0F0;
     color:var(--ink-soft);
   }
   .badge.ongoing{background:#FFF3D6; color:#9A6B00;}
   .badge.done{background:#E8F5EA; color:#2E7D32;}
-  .keywords{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
-  .kw-label{
-    font-size:11px; color:var(--ink-soft); margin-right:2px; font-weight:500;
+  .tag-line{
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 0;
+    font-size:13px; line-height:1.7;
   }
-  .kw{
-    font-size:11.5px;
-    padding:3px 10px;
-    border-radius:999px;
-    font-weight:600;
-    cursor:pointer;
-    border:none;
+  .tag-line .kw-label{
+    font-size:12px; color:var(--ink-soft); font-weight:600;
+    margin-right:8px; flex-shrink:0;
   }
-  .kw.genre{
-    background:var(--accent-soft);
-    color:var(--accent);
+  .tag-line .kw{
+    background:none; border:none; padding:0; cursor:pointer;
+    font-family:inherit; font-size:13px; font-weight:400;
+    color:var(--ink);
   }
-  .kw.pairing{
-    background:#FDEDE9;
-    color:#D14B32;
+  .tag-line .kw:hover{color:var(--accent); text-decoration:underline;}
+  .tag-line .kw + .kw::before{
+    content:"·"; color:var(--line); margin:0 7px; text-decoration:none;
   }
-  .kw.cp{
-    background:#F1EAFB;
-    color:#7A3FC2;
+  .tag-line .kw.cp{color:#7A3FC2; font-weight:600;}
+  .card-actions{
+    display:flex; gap:12px; justify-self:flex-end; margin-left:auto;
   }
-  .del-btn{
+  .action-btn{
     background:none;border:none;color:var(--ink-soft);
-    font-size:12px;cursor:pointer;align-self:flex-end;
-    opacity:0.5;
+    font-size:12px;cursor:pointer;
+    padding:0;
   }
-  .del-btn:hover{opacity:1;color:var(--accent);}
+  .action-btn:hover{color:var(--accent);}
+  .action-btn.danger:hover{color:#D14B32;}
 
   .empty{
     text-align:center; padding:60px 20px; color:var(--ink-soft);
@@ -259,8 +294,11 @@
 
 <div class="wrap">
   <header>
-    <h1>포스타입 글 아카이브</h1>
-    <p class="sub">제목, 작가, 키워드로 검색하고 바로 원문으로 이동하세요.</p>
+    <div class="header-text">
+      <h1>포스타입 글 아카이브</h1>
+      <p class="sub">제목, 작가, 키워드로 검색하고 바로 원문으로 이동하세요.</p>
+    </div>
+    <a class="ext-link" href="https://syosetu.colomo.dev/" target="_blank" rel="noopener noreferrer">콜로모 번역기 ↗</a>
   </header>
 
   <div class="search-row">
@@ -275,8 +313,8 @@
     <button data-mode="cp">CP</button>
   </div>
 
-  <details class="add-box">
-    <summary>새 글 등록하기</summary>
+  <details class="add-box" id="addBox">
+    <summary id="addBoxSummary">새 글 등록하기</summary>
     <form class="add-form" id="addForm" autocomplete="off">
       <div class="full">
         <label>제목</label>
@@ -336,7 +374,8 @@
         </div>
       </div>
 
-      <button type="submit">등록하기</button>
+      <button type="submit" id="submitBtn">등록하기</button>
+      <button type="button" id="cancelEditBtn" class="add-form-cancel" style="display:none;">취소</button>
       <div class="msg" id="formMsg"></div>
     </form>
   </details>
@@ -349,7 +388,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc,
     query, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -380,10 +419,63 @@
   const statusSeg = document.getElementById("statusSeg");
   const lengthExtra = document.getElementById("lengthExtra");
   const cpSeg = document.getElementById("cpSeg");
+  const addBox = document.getElementById("addBox");
+  const addBoxSummary = document.getElementById("addBoxSummary");
+  const submitBtn = document.getElementById("submitBtn");
+  const cancelEditBtn = document.getElementById("cancelEditBtn");
 
   let lengthType = "단편";
   let statusType = "완결";
   let selectedCp = [];
+  let editingId = null;
+
+  function startEdit(post){
+    editingId = post.id;
+    document.getElementById("f_title").value = post.title || "";
+    document.getElementById("f_author").value = post.author || "";
+    document.getElementById("f_link").value = post.link || "";
+    document.getElementById("f_genre").value = (post.genreKeywords || post.keywords || []).join(", ");
+    document.getElementById("f_pairing").value = (post.pairingKeywords || []).join(", ");
+
+    lengthType = post.lengthType === "장편" ? "장편" : "단편";
+    [...lengthSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === lengthType));
+    lengthExtra.style.display = lengthType === "장편" ? "block" : "none";
+    document.getElementById("f_episodes").value = post.episodes || "";
+
+    statusType = post.status === "미완결" ? "미완결" : "완결";
+    [...statusSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === statusType));
+
+    selectedCp = [...(post.cp || [])];
+    [...cpSeg.children].forEach(b => b.classList.toggle("active", selectedCp.includes(b.dataset.val)));
+
+    addBoxSummary.textContent = "글 수정하기";
+    submitBtn.textContent = "수정 완료";
+    cancelEditBtn.style.display = "block";
+    addBox.open = true;
+    addBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetFormState(){
+    addForm.reset();
+    [...lengthSeg.children].forEach(b => b.classList.remove("active"));
+    lengthSeg.children[0].classList.add("active");
+    lengthType = "단편";
+    lengthExtra.style.display = "none";
+    [...statusSeg.children].forEach(b => b.classList.remove("active"));
+    statusSeg.children[0].classList.add("active");
+    statusType = "완결";
+    [...cpSeg.children].forEach(b => b.classList.remove("active"));
+    selectedCp = [];
+    editingId = null;
+    addBoxSummary.textContent = "새 글 등록하기";
+    submitBtn.textContent = "등록하기";
+    cancelEditBtn.style.display = "none";
+  }
+
+  cancelEditBtn.addEventListener("click", () => {
+    resetFormState();
+    addBox.open = false;
+  });
 
   cpSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -518,7 +610,7 @@
       function addChipRow(list, type, labelText){
         if(!list.length) return;
         const kwWrap = document.createElement("div");
-        kwWrap.className = "keywords";
+        kwWrap.className = "tag-line";
         const label = document.createElement("span");
         label.className = "kw-label";
         label.textContent = labelText;
@@ -526,7 +618,7 @@
         list.forEach(k => {
           const chip = document.createElement("button");
           chip.className = "kw " + type;
-          chip.textContent = "#" + k;
+          chip.textContent = k;
           chip.onclick = () => {
             searchInput.value = k;
             [...filterTabs.children].forEach(b => b.classList.remove("active"));
@@ -543,15 +635,26 @@
       addChipRow(pairingList, "pairing", "공수");
       addChipRow(post.cp || [], "cp", "CP");
 
+      const actions = document.createElement("div");
+      actions.className = "card-actions";
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "action-btn";
+      editBtn.textContent = "수정";
+      editBtn.onclick = () => startEdit(post);
+      actions.appendChild(editBtn);
+
       const del = document.createElement("button");
-      del.className = "del-btn";
+      del.className = "action-btn danger";
       del.textContent = "삭제";
       del.onclick = async () => {
         if(!confirm("이 글을 목록에서 삭제할까요?")) return;
         await deleteDoc(doc(db, "posts", post.id));
         await loadPosts();
       };
-      card.appendChild(del);
+      actions.appendChild(del);
+
+      card.appendChild(actions);
 
       listEl.appendChild(card);
     });
@@ -576,29 +679,24 @@
       return;
     }
 
-    formMsg.textContent = "등록 중…";
+    formMsg.textContent = editingId ? "수정 중…" : "등록 중…";
     try{
-      await addDoc(postsRef, {
+      const payload = {
         title, author, link, genreKeywords, pairingKeywords,
-        lengthType, episodes, status, cp: selectedCp,
-        createdAt: serverTimestamp()
-      });
-      addForm.reset();
-      // 세그먼트 버튼과 상태값 초기화 (자동완성/이전 선택 남지 않도록)
-      [...lengthSeg.children].forEach(b => b.classList.remove("active"));
-      lengthSeg.children[0].classList.add("active");
-      lengthType = "단편";
-      lengthExtra.style.display = "none";
-      [...statusSeg.children].forEach(b => b.classList.remove("active"));
-      statusSeg.children[0].classList.add("active");
-      statusType = "완결";
-      [...cpSeg.children].forEach(b => b.classList.remove("active"));
-      selectedCp = [];
-      formMsg.textContent = "등록 완료!";
+        lengthType, episodes, status, cp: selectedCp
+      };
+      if(editingId){
+        await updateDoc(doc(db, "posts", editingId), payload);
+      } else {
+        await addDoc(postsRef, { ...payload, createdAt: serverTimestamp() });
+      }
+      const wasEditing = !!editingId;
+      resetFormState();
+      formMsg.textContent = wasEditing ? "수정 완료!" : "등록 완료!";
       setTimeout(() => formMsg.textContent = "", 1500);
       await loadPosts();
     }catch(err){
-      formMsg.textContent = "등록 중 오류가 발생했어요: " + err.message;
+      formMsg.textContent = (editingId ? "수정" : "등록") + " 중 오류가 발생했어요: " + err.message;
     }
   });
 
