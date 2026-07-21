@@ -1298,26 +1298,30 @@
       sPairing.forEach(p => { if(pairing.includes(p)){ score++; matchedTags.push(p); } });
       sCp.forEach(c => { if(cp.includes(c)){ score += 2; matchedTags.push(c); } });
       if(sStatus && post.status === sStatus) score += 1;
-
-      if(sAge !== "all" && (post.age || "all-ages") !== sAge) return { post, score:-1, matchedTags };
-      if(sLength !== "all" && post.lengthType !== sLength) return { post, score:-1, matchedTags };
+      if(sAge !== "all" && (post.age || "all-ages") === sAge) score += 1;
+      if(sLength !== "all" && post.lengthType === sLength) score += 1;
 
       return { post, score, matchedTags };
     })
-    .filter(r => r.score > 0)
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 10);
+    .sort((a,b) => b.score - a.score);
+
+    // 취향과 하나라도 겹치는 글 위주로, 없으면 전체에서라도 채워서 최소 1개는 나오게 함
+    let result = scored.filter(r => r.score > 0).slice(0, 10);
+    if(result.length === 0){
+      result = shuffle(scored).slice(0, 6);
+    }
+    const scoredFinal = result;
 
     resultList.innerHTML = "";
-    if(scored.length === 0){
-      resultCount.textContent = "조건에 맞는 글을 찾지 못했어요.";
+    if(scoredFinal.length === 0){
+      resultCount.textContent = "추천할 글이 아직 없어요.";
       const p = document.createElement("p");
       p.style.cssText = "font-size:13px;color:var(--ink-soft);";
-      p.textContent = "선택한 취향과 겹치는 글이 없어요. 다시 설문해보세요.";
+      p.textContent = "등록된 글이 부족해요. 잠시 후 다시 시도해주세요.";
       resultList.appendChild(p);
     } else {
-      resultCount.textContent = `${scored.length}편을 추천해요`;
-      scored.forEach(({post, matchedTags}) => {
+      resultCount.textContent = `${scoredFinal.length}편을 추천해요`;
+      scoredFinal.forEach(({post, matchedTags}) => {
         const card = document.createElement("div");
         card.className = "result-card";
         const a = document.createElement("a");
