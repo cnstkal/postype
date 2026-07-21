@@ -250,6 +250,7 @@
   .badge.ongoing{background:#FFF3D6; color:#9A6B00;}
   .badge.done{background:#E8F5EA; color:#2E7D32;}
   .badge.age19{background:#2A2A2A; color:#fff;}
+  .badge.age15{background:#FDECC8; color:#9A5B00;}
   .tag-line{
     display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 0;
     font-size:13px; line-height:1.7;
@@ -315,9 +316,10 @@
     <button data-mode="cp">CP</button>
   </div>
   <div class="filter-tabs" id="ageTabs">
-    <button data-age="all" class="active">전체 연령</button>
+    <button data-age="all" class="active">전체</button>
+    <button data-age="all-ages">전체연령</button>
+    <button data-age="15">15금</button>
     <button data-age="19">19금</button>
-    <button data-age="all-ages">전체이용가</button>
   </div>
 
   <details class="add-box" id="addBox">
@@ -361,7 +363,8 @@
       <div class="full">
         <label>연령 등급</label>
         <div class="seg" id="ageSeg">
-          <button type="button" class="seg-btn active" data-val="all-ages">전체이용가</button>
+          <button type="button" class="seg-btn active" data-val="all-ages">전체연령</button>
+          <button type="button" class="seg-btn" data-val="15">15금</button>
           <button type="button" class="seg-btn" data-val="19">19금</button>
         </div>
       </div>
@@ -485,7 +488,7 @@
     selectedCp = [...(post.cp || [])];
     [...cpSeg.children].forEach(b => b.classList.toggle("active", selectedCp.includes(b.dataset.val)));
 
-    ageValue = post.age === "19" ? "19" : "all-ages";
+    ageValue = (post.age === "19" || post.age === "15") ? post.age : "all-ages";
     [...ageSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === ageValue));
 
     addBoxSummary.textContent = "글 수정하기";
@@ -596,8 +599,7 @@
   function render(){
     const term = searchInput.value.trim();
     let filtered = allPosts.filter(p => matches(p, term));
-    if(ageFilter === "19") filtered = filtered.filter(p => p.age === "19");
-    if(ageFilter === "all-ages") filtered = filtered.filter(p => p.age !== "19");
+    if(ageFilter !== "all") filtered = filtered.filter(p => (p.age || "all-ages") === ageFilter);
 
     countRow.textContent = `총 ${allPosts.length}편 중 ${filtered.length}편`;
     listEl.innerHTML = "";
@@ -651,6 +653,11 @@
         const ageBadge = document.createElement("span");
         ageBadge.className = "badge age19";
         ageBadge.textContent = "19금";
+        badgeRow.appendChild(ageBadge);
+      } else if(post.age === "15"){
+        const ageBadge = document.createElement("span");
+        ageBadge.className = "badge age15";
+        ageBadge.textContent = "15금";
         badgeRow.appendChild(ageBadge);
       }
       card.appendChild(badgeRow);
