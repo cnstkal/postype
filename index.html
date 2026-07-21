@@ -1050,11 +1050,12 @@
     avoid: ["이건 좀 피하고 싶어요, 있다면?","오늘은 이런 전개는 패스하고 싶어요","못 보겠다 싶은 요소가 있다면?"],
     age: ["수위는 어느 정도가 좋아요?","오늘 원하는 수위는?","어느 정도 강도가 딱 좋아요?"],
     length: ["선호하는 분량은 어느 쪽인가요?","오늘은 어느 정도 길이가 좋아요?","분량 취향을 골라주세요"],
+    country: ["어느 나라 작품이 궁금해요?","원문은 어느 쪽 언어가 좋아요?","오늘은 어느 나라 글이 당겨요?"],
     free: ["추가로 알려주고 싶은 취향이 있다면?","더 하고 싶은 말이 있다면 적어주세요","놓친 취향이 있다면 자유롭게"]
   };
 
   function buildQuestions(){
-    answers = { genre:null, pairing:null, cp:null, avoid:null, age:null, length:null, status:null, free:null };
+    answers = { genre:null, pairing:null, cp:null, avoid:null, age:null, length:null, country:null, status:null, free:null };
     questions = [
       {
         key: "genre",
@@ -1101,6 +1102,19 @@
           { label: "연재 중인 글도 즐겨 봐요", value: "장편", status: "미완결" },
           { label: "분량은 딱히 안 가려요", value: "all" }
         ])
+      },
+      {
+        key: "country",
+        title: pickTitle(TITLE_POOL.country),
+        options: shuffle([
+          { label: "한국", value: "한국어" },
+          { label: "영미권", value: "영어" },
+          { label: "중국", value: "중국어" },
+          { label: "러시아", value: "러시아어" },
+          { label: "프랑스", value: "프랑스어" },
+          { label: "포르투갈/브라질", value: "포르투갈어" },
+          { label: "국가는 딱히 안 가려요", value: "all" }
+        ]).slice(0, 6)
       },
       {
         key: "free",
