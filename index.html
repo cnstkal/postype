@@ -116,6 +116,64 @@
   }
   .chip-pick{display:flex; flex-wrap:wrap; gap:6px;}
   .chip-pick .seg-btn{padding:7px 13px; font-size:12.5px;}
+
+  .survey-progress{
+    display:flex; gap:6px; padding:0 22px; margin-bottom:18px;
+  }
+  .survey-progress .dot{
+    flex:1; height:4px; border-radius:999px; background:var(--line);
+    transition:background .2s;
+  }
+  .survey-progress .dot.done{background:var(--accent);}
+  .survey-progress .dot.current{background:var(--ink);}
+
+  .survey-qhead{
+    padding:0 22px; margin-bottom:18px;
+  }
+  .survey-qcount{
+    font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;
+  }
+  .survey-qtitle{
+    font-size:17px; font-weight:700; line-height:1.4; letter-spacing:-0.01em;
+  }
+
+  .survey-options{
+    padding:0 22px; display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;
+  }
+  .survey-opt{
+    padding:16px 14px;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    background:var(--card);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:600;
+    line-height:1.4;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .survey-opt:hover{border-color:var(--accent); background:var(--accent-soft);}
+  .survey-opt:active{transform:scale(0.98);}
+  .survey-opt.picked{border-color:var(--accent); background:var(--accent); color:#fff;}
+
+  .survey-nav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0 22px 22px;
+  }
+  .survey-back{
+    background:none; border:none; color:var(--ink-soft); font-size:13px;
+    font-family:inherit; cursor:pointer; padding:8px 4px;
+  }
+  .survey-back:hover{color:var(--ink);}
+  .survey-back:disabled{visibility:hidden;}
+  .survey-skip{
+    background:none; border:none; color:var(--ink-soft); font-size:12.5px;
+    font-family:inherit; cursor:pointer; text-decoration:underline; padding:8px 4px;
+  }
+  .survey-skip:hover{color:var(--accent);}
+
   .survey-submit{
     width:100%;
     padding:13px;
@@ -498,46 +556,16 @@
     </div>
 
     <div class="modal-body" id="surveyForm">
-      <div class="q-block">
-        <label>선호 장르 (복수 선택)</label>
-        <div class="chip-pick" id="surveyGenre"></div>
+      <div class="survey-progress" id="surveyProgress"></div>
+      <div class="survey-qhead">
+        <div class="survey-qcount" id="surveyQCount"></div>
+        <div class="survey-qtitle" id="surveyQTitle"></div>
       </div>
-      <div class="q-block">
-        <label>선호 공수 (복수 선택)</label>
-        <div class="chip-pick" id="surveyPairing"></div>
+      <div class="survey-options" id="surveyOptions"></div>
+      <div class="survey-nav">
+        <button type="button" class="survey-back" id="surveyBack">← 이전</button>
+        <button type="button" class="survey-skip" id="surveySkip">이 질문은 건너뛸게요</button>
       </div>
-      <div class="q-block">
-        <label>선호 CP (복수 선택)</label>
-        <div class="chip-pick" id="surveyCp">
-          <button type="button" class="seg-btn" data-val="섷윤">섷윤</button>
-          <button type="button" class="seg-btn" data-val="몽윦">몽윦</button>
-          <button type="button" class="seg-btn" data-val="솽윦">솽윦</button>
-          <button type="button" class="seg-btn" data-val="낫윤">낫윤</button>
-          <button type="button" class="seg-btn" data-val="밍윦">밍윦</button>
-          <button type="button" class="seg-btn" data-val="웡윤">웡윤</button>
-          <button type="button" class="seg-btn" data-val="쫑윦">쫑윦</button>
-          <button type="button" class="seg-btn" data-val="윦른">윦른</button>
-        </div>
-      </div>
-      <div class="q-block">
-        <label>연령 등급</label>
-        <div class="chip-pick" id="surveyAge">
-          <button type="button" class="seg-btn active" data-val="all">상관없음</button>
-          <button type="button" class="seg-btn" data-val="all-ages">전체연령</button>
-          <button type="button" class="seg-btn" data-val="15">15금</button>
-          <button type="button" class="seg-btn" data-val="19">19금</button>
-        </div>
-      </div>
-      <div class="q-block">
-        <label>분량</label>
-        <div class="chip-pick" id="surveyLength">
-          <button type="button" class="seg-btn active" data-val="all">상관없음</button>
-          <button type="button" class="seg-btn" data-val="단편">단편</button>
-          <button type="button" class="seg-btn" data-val="장편">장편</button>
-        </div>
-      </div>
-
-      <button type="button" id="surveySubmit" class="survey-submit">추천받기</button>
     </div>
 
     <div class="modal-body" id="surveyResults" style="display:none;">
@@ -904,95 +932,166 @@
     }
   });
 
-  // ---------- 취향 설문 ----------
+  // ---------- 취향 설문 (한 문항씩 진행) ----------
   const openSurveyBtn = document.getElementById("openSurvey");
   const surveyOverlay = document.getElementById("surveyOverlay");
   const closeSurveyBtn = document.getElementById("closeSurvey");
-  const surveyGenreEl = document.getElementById("surveyGenre");
-  const surveyPairingEl = document.getElementById("surveyPairing");
-  const surveyCpEl = document.getElementById("surveyCp");
-  const surveyAgeEl = document.getElementById("surveyAge");
-  const surveyLengthEl = document.getElementById("surveyLength");
-  const surveySubmitBtn = document.getElementById("surveySubmit");
   const surveyForm = document.getElementById("surveyForm");
   const surveyResults = document.getElementById("surveyResults");
   const resultCount = document.getElementById("resultCount");
   const resultList = document.getElementById("resultList");
   const surveyRetryBtn = document.getElementById("surveyRetry");
+  const surveyProgressEl = document.getElementById("surveyProgress");
+  const surveyQCountEl = document.getElementById("surveyQCount");
+  const surveyQTitleEl = document.getElementById("surveyQTitle");
+  const surveyOptionsEl = document.getElementById("surveyOptions");
+  const surveyBackBtn = document.getElementById("surveyBack");
+  const surveySkipBtn = document.getElementById("surveySkip");
 
-  let sGenre = [], sPairing = [], sCp = [], sAge = "all", sLength = "all";
+  const CP_POOL = ["섷윤","몽윦","솽윦","낫윤","밍윦","웡윤","쫑윦","윦른"];
+  const GENRE_FALLBACK = ["로맨스","힐링","회귀","현판","다크","코미디","성장","일상"];
+  const PAIRING_FALLBACK = ["유공","순정남수","서로공수","오만공","다정수","츤데레","능글공","순수수"];
 
-  function multiToggle(container, arr){
-    container.addEventListener("click", (e) => {
-      const btn = e.target.closest(".seg-btn");
-      if(!btn) return;
-      const val = btn.dataset.val;
-      const idx = arr.indexOf(val);
-      if(idx > -1){ arr.splice(idx,1); btn.classList.remove("active"); }
-      else{ arr.push(val); btn.classList.add("active"); }
-    });
-  }
-  function singleToggle(container, setter){
-    container.addEventListener("click", (e) => {
-      const btn = e.target.closest(".seg-btn");
-      if(!btn) return;
-      [...container.children].forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      setter(btn.dataset.val);
-    });
-  }
-
-  multiToggle(surveyCpEl, sCp);
-  singleToggle(surveyAgeEl, v => sAge = v);
-  singleToggle(surveyLengthEl, v => sLength = v);
-
-  function populateSurveyOptions(){
-    const genreSet = new Set();
-    const pairingSet = new Set();
+  function topByFrequency(getList, fallback, n){
+    const count = new Map();
     allPosts.forEach(p => {
-      (p.genreKeywords || p.keywords || []).forEach(k => genreSet.add(k));
-      (p.pairingKeywords || []).forEach(k => pairingSet.add(k));
+      getList(p).forEach(k => count.set(k, (count.get(k) || 0) + 1));
     });
-    sGenre = []; sPairing = [];
-    surveyGenreEl.innerHTML = "";
-    [...genreSet].forEach(k => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "seg-btn"; b.dataset.val = k; b.textContent = k;
-      surveyGenreEl.appendChild(b);
-    });
-    surveyPairingEl.innerHTML = "";
-    [...pairingSet].forEach(k => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "seg-btn"; b.dataset.val = k; b.textContent = k;
-      surveyPairingEl.appendChild(b);
-    });
-    multiToggle(surveyGenreEl, sGenre);
-    multiToggle(surveyPairingEl, sPairing);
-
-    if(genreSet.size === 0){
-      surveyGenreEl.innerHTML = '<span style="font-size:12px;color:var(--ink-soft);">등록된 장르 태그가 없어요</span>';
-    }
-    if(pairingSet.size === 0){
-      surveyPairingEl.innerHTML = '<span style="font-size:12px;color:var(--ink-soft);">등록된 공수 태그가 없어요</span>';
-    }
+    const ranked = [...count.entries()].sort((a,b) => b[1]-a[1]).map(([k])=>k);
+    const merged = [...ranked];
+    fallback.forEach(k => { if(!merged.includes(k)) merged.push(k); });
+    return merged.slice(0, n);
   }
 
-  function resetSurveySelections(){
-    sCp.length = 0;
-    [...surveyCpEl.children].forEach(b => b.classList && b.classList.remove("active"));
-    sAge = "all";
-    [...surveyAgeEl.children].forEach(b => b.classList.remove("active"));
-    surveyAgeEl.children[0].classList.add("active");
-    sLength = "all";
-    [...surveyLengthEl.children].forEach(b => b.classList.remove("active"));
-    surveyLengthEl.children[0].classList.add("active");
+  function shuffle(arr){
+    const a = [...arr];
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  // answers accumulate as user progresses
+  let answers = {};
+  let questions = [];
+  let qIndex = 0;
+
+  function buildQuestions(){
+    answers = { genre:null, pairing:null, cp:null, age:null, length:null, status:null };
+    questions = [
+      {
+        key: "genre",
+        title: "오늘은 어떤 분위기의 이야기가 끌리나요?",
+        options: topByFrequency(p => p.genreKeywords || p.keywords || [], GENRE_FALLBACK, 6)
+          .map(v => ({ label: v, value: v }))
+      },
+      {
+        key: "pairing",
+        title: "어떤 케미에 마음이 가나요?",
+        options: topByFrequency(p => p.pairingKeywords || [], PAIRING_FALLBACK, 6)
+          .map(v => ({ label: v, value: v }))
+      },
+      {
+        key: "cp",
+        title: "끌리는 조합이 있다면?",
+        options: shuffle(CP_POOL).slice(0, 6).map(v => ({ label: v, value: v }))
+      },
+      {
+        key: "age",
+        title: "수위는 어느 정도가 좋아요?",
+        options: [
+          { label: "잔잔하고 순한 이야기가 좋아요", value: "all-ages" },
+          { label: "설렘 정도면 딱 좋아요", value: "all-ages" },
+          { label: "적당히 긴장감 있는 정도", value: "15" },
+          { label: "조금 아슬아슬해도 괜찮아요", value: "15" },
+          { label: "확실하고 진한 게 좋아요", value: "19" },
+          { label: "수위는 딱히 안 가려요", value: "all" }
+        ]
+      },
+      {
+        key: "length",
+        title: "선호하는 분량은 어느 쪽인가요?",
+        options: [
+          { label: "가볍게 한 번에 읽고 싶어요", value: "단편" },
+          { label: "짧고 굵은 이야기가 좋아요", value: "단편" },
+          { label: "오래 두고 천천히 보고 싶어요", value: "장편", status: "미완결" },
+          { label: "몰아볼 수 있게 완결난 글이 좋아요", value: "장편", status: "완결" },
+          { label: "연재 중인 글도 즐겨 봐요", value: "장편", status: "미완결" },
+          { label: "분량은 딱히 안 가려요", value: "all" }
+        ]
+      }
+    ];
+  }
+
+  function renderProgress(){
+    surveyProgressEl.innerHTML = "";
+    questions.forEach((_, i) => {
+      const dot = document.createElement("div");
+      dot.className = "dot" + (i < qIndex ? " done" : i === qIndex ? " current" : "");
+      surveyProgressEl.appendChild(dot);
+    });
+  }
+
+  function renderStep(){
+    renderProgress();
+    const q = questions[qIndex];
+    surveyQCountEl.textContent = `Q${qIndex+1} / ${questions.length}`;
+    surveyQTitleEl.textContent = q.title;
+    surveyOptionsEl.innerHTML = "";
+    q.options.forEach(opt => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "survey-opt";
+      b.textContent = opt.label;
+      if(answers[q.key] && answers[q.key].label === opt.label){
+        b.classList.add("picked");
+      }
+      b.onclick = () => choose(opt);
+      surveyOptionsEl.appendChild(b);
+    });
+    surveyBackBtn.disabled = qIndex === 0;
+  }
+
+  function choose(opt){
+    const q = questions[qIndex];
+    answers[q.key] = opt;
+    [...surveyOptionsEl.children].forEach(b => b.classList.remove("picked"));
+    const btns = [...surveyOptionsEl.children];
+    const idx = q.options.indexOf(opt);
+    if(btns[idx]) btns[idx].classList.add("picked");
+    setTimeout(() => {
+      if(qIndex < questions.length - 1){
+        qIndex++;
+        renderStep();
+      } else {
+        finishSurvey();
+      }
+    }, 220);
+  }
+
+  surveyBackBtn.addEventListener("click", () => {
+    if(qIndex > 0){ qIndex--; renderStep(); }
+  });
+  surveySkipBtn.addEventListener("click", () => {
+    if(qIndex < questions.length - 1){
+      qIndex++;
+      renderStep();
+    } else {
+      finishSurvey();
+    }
+  });
+
+  function startSurvey(){
+    buildQuestions();
+    qIndex = 0;
+    renderStep();
+    surveyForm.style.display = "block";
+    surveyResults.style.display = "none";
   }
 
   openSurveyBtn.addEventListener("click", () => {
-    populateSurveyOptions();
-    resetSurveySelections();
-    surveyForm.style.display = "block";
-    surveyResults.style.display = "none";
+    startSurvey();
     surveyOverlay.classList.add("open");
   });
   closeSurveyBtn.addEventListener("click", () => surveyOverlay.classList.remove("open"));
@@ -1000,7 +1099,14 @@
     if(e.target === surveyOverlay) surveyOverlay.classList.remove("open");
   });
 
-  surveySubmitBtn.addEventListener("click", () => {
+  function finishSurvey(){
+    const sGenre = answers.genre ? [answers.genre.value] : [];
+    const sPairing = answers.pairing ? [answers.pairing.value] : [];
+    const sCp = answers.cp ? [answers.cp.value] : [];
+    const sAge = answers.age ? answers.age.value : "all";
+    const sLength = answers.length ? answers.length.value : "all";
+    const sStatus = answers.length ? (answers.length.status || null) : null;
+
     const scored = allPosts.map(post => {
       const genre = post.genreKeywords || post.keywords || [];
       const pairing = post.pairingKeywords || [];
@@ -1010,6 +1116,7 @@
       sGenre.forEach(g => { if(genre.includes(g)){ score++; matchedTags.push(g); } });
       sPairing.forEach(p => { if(pairing.includes(p)){ score++; matchedTags.push(p); } });
       sCp.forEach(c => { if(cp.includes(c)){ score += 2; matchedTags.push(c); } });
+      if(sStatus && post.status === sStatus) score += 1;
 
       if(sAge !== "all" && (post.age || "all-ages") !== sAge) return { post, score:-1, matchedTags };
       if(sLength !== "all" && post.lengthType !== sLength) return { post, score:-1, matchedTags };
@@ -1025,7 +1132,7 @@
       resultCount.textContent = "조건에 맞는 글을 찾지 못했어요.";
       const p = document.createElement("p");
       p.style.cssText = "font-size:13px;color:var(--ink-soft);";
-      p.textContent = "선택한 취향과 겹치는 글이 없어요. 다른 조합으로 다시 시도해보세요.";
+      p.textContent = "선택한 취향과 겹치는 글이 없어요. 다시 설문해보세요.";
       resultList.appendChild(p);
     } else {
       resultCount.textContent = `${scored.length}편을 추천해요`;
@@ -1049,13 +1156,10 @@
     }
     surveyForm.style.display = "none";
     surveyResults.style.display = "block";
-  });
+  }
 
   surveyRetryBtn.addEventListener("click", () => {
-    populateSurveyOptions();
-    resetSurveySelections();
-    surveyForm.style.display = "block";
-    surveyResults.style.display = "none";
+    startSurvey();
   });
 
   loadPosts();
