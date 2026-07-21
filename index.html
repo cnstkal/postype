@@ -1291,12 +1291,14 @@
     const scored = allPosts.map(post => {
       const genre = post.genreKeywords || post.keywords || [];
       const pairing = post.pairingKeywords || [];
+      const allTags = [...genre, ...pairing];
       const cp = post.cp || [];
       let score = 0;
       const matchedTags = [];
-      sGenre.forEach(g => { if(genre.includes(g)){ score++; matchedTags.push(g); } });
-      sPairing.forEach(p => { if(pairing.includes(p)){ score++; matchedTags.push(p); } });
-      sCp.forEach(c => { if(cp.includes(c)){ score += 2; matchedTags.push(c); } });
+      const fuzzyMatch = (val) => allTags.find(t => t.includes(val) || val.includes(t));
+      sGenre.forEach(g => { const m = fuzzyMatch(g); if(m){ score++; matchedTags.push(m); } });
+      sPairing.forEach(p => { const m = fuzzyMatch(p); if(m){ score++; matchedTags.push(m); } });
+      sCp.forEach(c => { if(cp.includes(c)){ score++; matchedTags.push(c); } });
       if(sStatus && post.status === sStatus) score += 1;
       if(sAge !== "all" && (post.age || "all-ages") === sAge) score += 1;
       if(sLength !== "all" && post.lengthType === sLength) score += 1;
