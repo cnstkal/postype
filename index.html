@@ -1307,12 +1307,10 @@
     })
     .sort((a,b) => b.score - a.score);
 
-    // 취향과 하나라도 겹치는 글 위주로, 없으면 전체에서라도 채워서 최소 1개는 나오게 함
-    let result = scored.filter(r => r.score > 0).slice(0, 10);
-    if(result.length === 0){
-      result = shuffle(scored).slice(0, 6);
-    }
-    const scoredFinal = result;
+    // 점수 높은 순 매칭 결과 먼저, 부족하면 나머지에서 다양하게(같은 CP 몰아주지 않게) 채워서 항상 여러 개 나오게 함
+    let matched = scored.filter(r => r.score > 0);
+    let rest = shuffle(scored.filter(r => r.score === 0));
+    let scoredFinal = [...matched, ...rest].slice(0, 10);
 
     resultList.innerHTML = "";
     if(scoredFinal.length === 0){
