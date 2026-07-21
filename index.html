@@ -1014,6 +1014,7 @@
   const CP_POOL = ["섷윤","몽윦","솽윦","낫윤","밍윦","웡윤","쫑윦","윦른"];
   const GENRE_FALLBACK = ["로맨스","힐링","회귀","현판","다크","코미디","성장","일상"];
   const PAIRING_FALLBACK = ["유공","순정남수","서로공수","오만공","다정수","츤데레","능글공","순수수"];
+  const AVOID_FALLBACK = ["새드/비극","막장 전개","삼각관계","과한 오해/오독","배드엔딩","학원물","군대물","딱히 없어요"];
 
   function topByFrequency(getList, fallback, n){
     const count = new Map();
@@ -1041,7 +1042,7 @@
   let qIndex = 0;
 
   function buildQuestions(){
-    answers = { genre:null, pairing:null, cp:null, age:null, length:null, status:null };
+    answers = { genre:null, pairing:null, cp:null, avoid:null, age:null, length:null, status:null, free:null };
     questions = [
       {
         key: "genre",
@@ -1059,6 +1060,11 @@
         key: "cp",
         title: "끌리는 조합이 있다면?",
         options: shuffle(CP_POOL).slice(0, 6).map(v => ({ label: v, value: v }))
+      },
+      {
+        key: "avoid",
+        title: "이건 좀 피하고 싶어요, 있다면?",
+        options: shuffle(AVOID_FALLBACK).slice(0, 6).map(v => ({ label: v, value: v }))
       },
       {
         key: "age",
@@ -1083,6 +1089,12 @@
           { label: "연재 중인 글도 즐겨 봐요", value: "장편", status: "미완결" },
           { label: "분량은 딱히 안 가려요", value: "all" }
         ]
+      },
+      {
+        key: "free",
+        title: "추가로 알려주고 싶은 취향이 있다면?",
+        type: "text",
+        placeholder: "예: 재회물 좋아함, 오해 없는 전개 선호 등 (선택)"
       }
     ];
   }
@@ -1102,27 +1114,45 @@
     surveyQCountEl.textContent = `Q${qIndex+1} / ${questions.length}`;
     surveyQTitleEl.textContent = q.title;
     surveyOptionsEl.innerHTML = "";
-    q.options.forEach(opt => {
+    if(q.type === "text"){
+      const ta = document.createElement("textarea");
+      ta.className = "survey-opt";
+      ta.style.cssText = "width:100%;min-height:80px;resize:vertical;text-align:left;white-space:pre-wrap;";
+      ta.placeholder = q.placeholder || "";
+      ta.value = (answers[q.key] && answers[q.key].value) || "";
+      surveyOptionsEl.appendChild(ta);
       const b = document.createElement("button");
       b.type = "button";
       b.className = "survey-opt";
-      b.textContent = opt.label;
-      if(answers[q.key] && answers[q.key].label === opt.label){
-        b.classList.add("picked");
-      }
-      b.onclick = () => choose(opt);
+      b.style.marginTop = "10px";
+      b.textContent = "다음 →";
+      b.onclick = () => choose({ label: ta.value.trim(), value: ta.value.trim() });
       surveyOptionsEl.appendChild(b);
-    });
+    } else {
+      q.options.forEach(opt => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "survey-opt";
+        b.textContent = opt.label;
+        if(answers[q.key] && answers[q.key].label === opt.label){
+          b.classList.add("picked");
+        }
+        b.onclick = () => choose(opt);
+        surveyOptionsEl.appendChild(b);
+      });
+    }
     surveyBackBtn.disabled = qIndex === 0;
   }
 
   function choose(opt){
     const q = questions[qIndex];
     answers[q.key] = opt;
-    [...surveyOptionsEl.children].forEach(b => b.classList.remove("picked"));
-    const btns = [...surveyOptionsEl.children];
-    const idx = q.options.indexOf(opt);
-    if(btns[idx]) btns[idx].classList.add("picked");
+    if(q.type !== "text"){
+      [...surveyOptionsEl.children].forEach(b => b.classList.remove("picked"));
+      const btns = [...surveyOptionsEl.children];
+      const idx = q.options.indexOf(opt);
+      if(btns[idx]) btns[idx].classList.add("picked");
+    }
     setTimeout(() => {
       if(qIndex < questions.length - 1){
         qIndex++;
