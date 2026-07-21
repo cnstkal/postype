@@ -64,6 +64,90 @@
   }
   .ext-link:hover{border-color:var(--accent); color:var(--accent);}
 
+  .survey-cta{
+    display:block;
+    width:100%;
+    padding:14px;
+    margin-bottom:20px;
+    background:var(--ink);
+    color:var(--paper, #fff);
+    border:none;
+    border-radius:10px;
+    font-family:inherit;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .survey-cta:hover{background:var(--accent);}
+
+  .modal-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.45);
+    align-items:center; justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    background:var(--card);
+    border-radius:14px;
+    width:100%; max-width:560px;
+    max-height:85vh;
+    overflow-y:auto;
+    padding:0;
+  }
+  .modal-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:20px 22px 12px;
+    position:sticky; top:0; background:var(--card);
+  }
+  .modal-head h2{font-size:18px; margin:0; font-weight:700;}
+  .modal-close{
+    background:none; border:none; font-size:16px; color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .modal-body{padding:4px 22px 24px;}
+  .q-block{margin-bottom:20px;}
+  .q-block label{
+    display:block; font-size:13px; font-weight:600; color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .chip-pick{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip-pick .seg-btn{padding:7px 13px; font-size:12.5px;}
+  .survey-submit{
+    width:100%;
+    padding:13px;
+    background:var(--ink);
+    color:var(--paper,#fff);
+    border:none;
+    border-radius:8px;
+    font-family:inherit;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .survey-submit:hover{background:var(--accent);}
+  .result-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:16px; font-size:13px; color:var(--ink-soft);
+  }
+  .link-btn{
+    background:none; border:none; color:var(--accent);
+    font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .result-card{
+    border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; margin-bottom:10px;
+  }
+  .result-card .rtitle{
+    font-weight:700; font-size:15px; text-decoration:none; color:var(--ink);
+  }
+  .result-card .rtitle:hover{color:var(--accent);}
+  .result-card .rauthor{font-size:12px; color:var(--ink-soft); margin-left:8px;}
+  .result-card .rmatch{font-size:12px; color:var(--accent); margin-top:6px;}
+
   .search-row{
     display:flex; gap:10px; margin-bottom:36px;
   }
@@ -304,6 +388,8 @@
     <a class="ext-link" href="https://syosetu.colomo.dev/" target="_blank" rel="noopener noreferrer">콜로모 번역기 ↗</a>
   </header>
 
+  <button class="survey-cta" id="openSurvey">🎯 취향 설문하고 추천받기</button>
+
   <div class="search-row">
     <input type="text" id="searchInput" placeholder="제목 / 작가 / 키워드로 검색…">
   </div>
@@ -402,6 +488,66 @@
   <div class="count-row" id="countRow"></div>
   <div class="list" id="list"></div>
   <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 글이 없어요. 위에서 새 글을 등록해보세요.</div>
+</div>
+
+<div class="modal-overlay" id="surveyOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>취향 설문</h2>
+      <button class="modal-close" id="closeSurvey">✕</button>
+    </div>
+
+    <div class="modal-body" id="surveyForm">
+      <div class="q-block">
+        <label>선호 장르 (복수 선택)</label>
+        <div class="chip-pick" id="surveyGenre"></div>
+      </div>
+      <div class="q-block">
+        <label>선호 공수 (복수 선택)</label>
+        <div class="chip-pick" id="surveyPairing"></div>
+      </div>
+      <div class="q-block">
+        <label>선호 CP (복수 선택)</label>
+        <div class="chip-pick" id="surveyCp">
+          <button type="button" class="seg-btn" data-val="섷윤">섷윤</button>
+          <button type="button" class="seg-btn" data-val="몽윦">몽윦</button>
+          <button type="button" class="seg-btn" data-val="솽윦">솽윦</button>
+          <button type="button" class="seg-btn" data-val="낫윤">낫윤</button>
+          <button type="button" class="seg-btn" data-val="밍윦">밍윦</button>
+          <button type="button" class="seg-btn" data-val="웡윤">웡윤</button>
+          <button type="button" class="seg-btn" data-val="쫑윦">쫑윦</button>
+          <button type="button" class="seg-btn" data-val="윦른">윦른</button>
+        </div>
+      </div>
+      <div class="q-block">
+        <label>연령 등급</label>
+        <div class="chip-pick" id="surveyAge">
+          <button type="button" class="seg-btn active" data-val="all">상관없음</button>
+          <button type="button" class="seg-btn" data-val="all-ages">전체연령</button>
+          <button type="button" class="seg-btn" data-val="15">15금</button>
+          <button type="button" class="seg-btn" data-val="19">19금</button>
+        </div>
+      </div>
+      <div class="q-block">
+        <label>분량</label>
+        <div class="chip-pick" id="surveyLength">
+          <button type="button" class="seg-btn active" data-val="all">상관없음</button>
+          <button type="button" class="seg-btn" data-val="단편">단편</button>
+          <button type="button" class="seg-btn" data-val="장편">장편</button>
+        </div>
+      </div>
+
+      <button type="button" id="surveySubmit" class="survey-submit">추천받기</button>
+    </div>
+
+    <div class="modal-body" id="surveyResults" style="display:none;">
+      <div class="result-head">
+        <span id="resultCount"></span>
+        <button type="button" id="surveyRetry" class="link-btn">다시 설문하기</button>
+      </div>
+      <div id="resultList"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -756,6 +902,160 @@
     }catch(err){
       formMsg.textContent = (editingId ? "수정" : "등록") + " 중 오류가 발생했어요: " + err.message;
     }
+  });
+
+  // ---------- 취향 설문 ----------
+  const openSurveyBtn = document.getElementById("openSurvey");
+  const surveyOverlay = document.getElementById("surveyOverlay");
+  const closeSurveyBtn = document.getElementById("closeSurvey");
+  const surveyGenreEl = document.getElementById("surveyGenre");
+  const surveyPairingEl = document.getElementById("surveyPairing");
+  const surveyCpEl = document.getElementById("surveyCp");
+  const surveyAgeEl = document.getElementById("surveyAge");
+  const surveyLengthEl = document.getElementById("surveyLength");
+  const surveySubmitBtn = document.getElementById("surveySubmit");
+  const surveyForm = document.getElementById("surveyForm");
+  const surveyResults = document.getElementById("surveyResults");
+  const resultCount = document.getElementById("resultCount");
+  const resultList = document.getElementById("resultList");
+  const surveyRetryBtn = document.getElementById("surveyRetry");
+
+  let sGenre = [], sPairing = [], sCp = [], sAge = "all", sLength = "all";
+
+  function multiToggle(container, arr){
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest(".seg-btn");
+      if(!btn) return;
+      const val = btn.dataset.val;
+      const idx = arr.indexOf(val);
+      if(idx > -1){ arr.splice(idx,1); btn.classList.remove("active"); }
+      else{ arr.push(val); btn.classList.add("active"); }
+    });
+  }
+  function singleToggle(container, setter){
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest(".seg-btn");
+      if(!btn) return;
+      [...container.children].forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      setter(btn.dataset.val);
+    });
+  }
+
+  multiToggle(surveyCpEl, sCp);
+  singleToggle(surveyAgeEl, v => sAge = v);
+  singleToggle(surveyLengthEl, v => sLength = v);
+
+  function populateSurveyOptions(){
+    const genreSet = new Set();
+    const pairingSet = new Set();
+    allPosts.forEach(p => {
+      (p.genreKeywords || p.keywords || []).forEach(k => genreSet.add(k));
+      (p.pairingKeywords || []).forEach(k => pairingSet.add(k));
+    });
+    sGenre = []; sPairing = [];
+    surveyGenreEl.innerHTML = "";
+    [...genreSet].forEach(k => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "seg-btn"; b.dataset.val = k; b.textContent = k;
+      surveyGenreEl.appendChild(b);
+    });
+    surveyPairingEl.innerHTML = "";
+    [...pairingSet].forEach(k => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "seg-btn"; b.dataset.val = k; b.textContent = k;
+      surveyPairingEl.appendChild(b);
+    });
+    multiToggle(surveyGenreEl, sGenre);
+    multiToggle(surveyPairingEl, sPairing);
+
+    if(genreSet.size === 0){
+      surveyGenreEl.innerHTML = '<span style="font-size:12px;color:var(--ink-soft);">등록된 장르 태그가 없어요</span>';
+    }
+    if(pairingSet.size === 0){
+      surveyPairingEl.innerHTML = '<span style="font-size:12px;color:var(--ink-soft);">등록된 공수 태그가 없어요</span>';
+    }
+  }
+
+  function resetSurveySelections(){
+    sCp.length = 0;
+    [...surveyCpEl.children].forEach(b => b.classList && b.classList.remove("active"));
+    sAge = "all";
+    [...surveyAgeEl.children].forEach(b => b.classList.remove("active"));
+    surveyAgeEl.children[0].classList.add("active");
+    sLength = "all";
+    [...surveyLengthEl.children].forEach(b => b.classList.remove("active"));
+    surveyLengthEl.children[0].classList.add("active");
+  }
+
+  openSurveyBtn.addEventListener("click", () => {
+    populateSurveyOptions();
+    resetSurveySelections();
+    surveyForm.style.display = "block";
+    surveyResults.style.display = "none";
+    surveyOverlay.classList.add("open");
+  });
+  closeSurveyBtn.addEventListener("click", () => surveyOverlay.classList.remove("open"));
+  surveyOverlay.addEventListener("click", (e) => {
+    if(e.target === surveyOverlay) surveyOverlay.classList.remove("open");
+  });
+
+  surveySubmitBtn.addEventListener("click", () => {
+    const scored = allPosts.map(post => {
+      const genre = post.genreKeywords || post.keywords || [];
+      const pairing = post.pairingKeywords || [];
+      const cp = post.cp || [];
+      let score = 0;
+      const matchedTags = [];
+      sGenre.forEach(g => { if(genre.includes(g)){ score++; matchedTags.push(g); } });
+      sPairing.forEach(p => { if(pairing.includes(p)){ score++; matchedTags.push(p); } });
+      sCp.forEach(c => { if(cp.includes(c)){ score += 2; matchedTags.push(c); } });
+
+      if(sAge !== "all" && (post.age || "all-ages") !== sAge) return { post, score:-1, matchedTags };
+      if(sLength !== "all" && post.lengthType !== sLength) return { post, score:-1, matchedTags };
+
+      return { post, score, matchedTags };
+    })
+    .filter(r => r.score > 0)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 10);
+
+    resultList.innerHTML = "";
+    if(scored.length === 0){
+      resultCount.textContent = "조건에 맞는 글을 찾지 못했어요.";
+      const p = document.createElement("p");
+      p.style.cssText = "font-size:13px;color:var(--ink-soft);";
+      p.textContent = "선택한 취향과 겹치는 글이 없어요. 다른 조합으로 다시 시도해보세요.";
+      resultList.appendChild(p);
+    } else {
+      resultCount.textContent = `${scored.length}편을 추천해요`;
+      scored.forEach(({post, matchedTags}) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+        const a = document.createElement("a");
+        a.href = post.link; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.className = "rtitle"; a.textContent = post.title;
+        const author = document.createElement("span");
+        author.className = "rauthor"; author.textContent = "by " + post.author;
+        card.appendChild(a); card.appendChild(author);
+        if(matchedTags.length){
+          const m = document.createElement("div");
+          m.className = "rmatch";
+          m.textContent = "겹치는 취향: " + [...new Set(matchedTags)].join(", ");
+          card.appendChild(m);
+        }
+        resultList.appendChild(card);
+      });
+    }
+    surveyForm.style.display = "none";
+    surveyResults.style.display = "block";
+  });
+
+  surveyRetryBtn.addEventListener("click", () => {
+    populateSurveyOptions();
+    resetSurveySelections();
+    surveyForm.style.display = "block";
+    surveyResults.style.display = "none";
   });
 
   loadPosts();
