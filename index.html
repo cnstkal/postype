@@ -131,6 +131,45 @@
   .add-form button:hover{background:var(--accent);}
   .add-form .msg{grid-column:1/-1; font-size:13px; color:var(--accent); min-height:16px;}
 
+  .seg{display:flex; gap:6px;}
+  .seg-btn{
+    padding:9px 16px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fff;
+    color:var(--ink-soft);
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .seg-btn.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:#fff;
+  }
+  .seg-extra{
+    background:#F5F5F5;
+    border-radius:8px;
+    padding:14px;
+  }
+  .extra-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .extra-row label{font-size:12px; color:var(--ink-soft); margin-bottom:5px; display:block;}
+  .extra-row input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-family:inherit;
+    font-size:14px;
+    background:#fff;
+    color:var(--ink);
+  }
+
   .count-row{
     font-size:13px; color:var(--ink-soft); margin-bottom:14px;
   }
@@ -161,6 +200,17 @@
     font-size:13px; color:var(--ink-soft);
     white-space:nowrap; padding-top:4px;
   }
+  .badge-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .badge{
+    font-size:11.5px;
+    padding:3px 9px;
+    border-radius:6px;
+    font-weight:600;
+    background:#F0F0F0;
+    color:var(--ink-soft);
+  }
+  .badge.ongoing{background:#FFF3D6; color:#9A6B00;}
+  .badge.done{background:#E8F5EA; color:#2E7D32;}
   .keywords{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
   .kw-label{
     font-size:11px; color:var(--ink-soft); margin-right:2px; font-weight:500;
@@ -221,27 +271,52 @@
 
   <details class="add-box">
     <summary>새 글 등록하기</summary>
-    <form class="add-form" id="addForm">
+    <form class="add-form" id="addForm" autocomplete="off">
       <div class="full">
         <label>제목</label>
-        <input type="text" id="f_title" required placeholder="글 제목">
+        <input type="text" id="f_title" required placeholder="글 제목" autocomplete="off">
       </div>
       <div>
         <label>작가</label>
-        <input type="text" id="f_author" required placeholder="작가명">
+        <input type="text" id="f_author" required placeholder="작가명" autocomplete="off">
       </div>
       <div>
         <label>링크</label>
-        <input type="url" id="f_link" required placeholder="https://...">
+        <input type="url" id="f_link" required placeholder="https://..." autocomplete="off">
       </div>
       <div>
         <label>장르 키워드 (쉼표로 구분)</label>
-        <input type="text" id="f_genre" placeholder="예: 로맨스, 회귀, 현판, 힐링">
+        <input type="text" id="f_genre" placeholder="예: 로맨스, 회귀, 현판, 힐링" autocomplete="off">
       </div>
       <div>
         <label>공수 키워드 (쉼표로 구분)</label>
-        <input type="text" id="f_pairing" placeholder="예: 유공, 순정남수, 서로공수">
+        <input type="text" id="f_pairing" placeholder="예: 유공, 순정남수, 서로공수" autocomplete="off">
       </div>
+
+      <div class="full">
+        <label>연재 구분</label>
+        <div class="seg" id="lengthSeg">
+          <button type="button" class="seg-btn active" data-val="단편">단편</button>
+          <button type="button" class="seg-btn" data-val="장편">장편</button>
+        </div>
+      </div>
+
+      <div class="full seg-extra" id="lengthExtra" style="display:none;">
+        <div class="extra-row">
+          <div>
+            <label>총 화수</label>
+            <input type="number" id="f_episodes" min="1" placeholder="예: 24" autocomplete="off">
+          </div>
+          <div>
+            <label>연재 상태</label>
+            <div class="seg" id="statusSeg">
+              <button type="button" class="seg-btn active" data-val="완결">완결</button>
+              <button type="button" class="seg-btn" data-val="미완결">미완결</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button type="submit">등록하기</button>
       <div class="msg" id="formMsg"></div>
     </form>
@@ -282,6 +357,29 @@
   const filterTabs = document.getElementById("filterTabs");
   const addForm = document.getElementById("addForm");
   const formMsg = document.getElementById("formMsg");
+  const lengthSeg = document.getElementById("lengthSeg");
+  const statusSeg = document.getElementById("statusSeg");
+  const lengthExtra = document.getElementById("lengthExtra");
+
+  let lengthType = "단편";
+  let statusType = "완결";
+
+  lengthSeg.addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if(!btn) return;
+    [...lengthSeg.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    lengthType = btn.dataset.val;
+    lengthExtra.style.display = lengthType === "장편" ? "block" : "none";
+  });
+
+  statusSeg.addEventListener("click", (e) => {
+    const btn = e.target.closest(".seg-btn");
+    if(!btn) return;
+    [...statusSeg.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    statusType = btn.dataset.val;
+  });
 
   filterTabs.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
@@ -358,24 +456,54 @@
       top.appendChild(author);
       card.appendChild(top);
 
-      if(post.keywords && post.keywords.length){
+      const badgeRow = document.createElement("div");
+      badgeRow.className = "badge-row";
+      const lengthBadge = document.createElement("span");
+      lengthBadge.className = "badge";
+      if(post.lengthType === "장편"){
+        const epi = post.episodes ? `전 ${post.episodes}화` : "장편";
+        lengthBadge.textContent = epi;
+        badgeRow.appendChild(lengthBadge);
+
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "badge " + (post.status === "완결" ? "done" : "ongoing");
+        statusBadge.textContent = post.status || "미완결";
+        badgeRow.appendChild(statusBadge);
+      } else {
+        lengthBadge.textContent = "단편";
+        badgeRow.appendChild(lengthBadge);
+      }
+      card.appendChild(badgeRow);
+
+      const genreList = post.genreKeywords || post.keywords || [];
+      const pairingList = post.pairingKeywords || [];
+
+      function addChipRow(list, type, labelText){
+        if(!list.length) return;
         const kwWrap = document.createElement("div");
         kwWrap.className = "keywords";
-        post.keywords.forEach(k => {
+        const label = document.createElement("span");
+        label.className = "kw-label";
+        label.textContent = labelText;
+        kwWrap.appendChild(label);
+        list.forEach(k => {
           const chip = document.createElement("button");
-          chip.className = "kw";
+          chip.className = "kw " + type;
           chip.textContent = "#" + k;
           chip.onclick = () => {
             searchInput.value = k;
             [...filterTabs.children].forEach(b => b.classList.remove("active"));
-            filterTabs.querySelector('[data-mode="keyword"]').classList.add("active");
-            mode = "keyword";
+            filterTabs.querySelector(`[data-mode="${type}"]`).classList.add("active");
+            mode = type;
             render();
           };
           kwWrap.appendChild(chip);
         });
         card.appendChild(kwWrap);
       }
+
+      addChipRow(genreList, "genre", "장르");
+      addChipRow(pairingList, "pairing", "공수");
 
       const del = document.createElement("button");
       del.className = "del-btn";
@@ -396,8 +524,14 @@
     const title = document.getElementById("f_title").value.trim();
     const author = document.getElementById("f_author").value.trim();
     const link = document.getElementById("f_link").value.trim();
-    const keywords = document.getElementById("f_keywords").value
+    const genreKeywords = document.getElementById("f_genre").value
       .split(",").map(s => s.trim()).filter(Boolean);
+    const pairingKeywords = document.getElementById("f_pairing").value
+      .split(",").map(s => s.trim()).filter(Boolean);
+    const episodes = lengthType === "장편"
+      ? (parseInt(document.getElementById("f_episodes").value, 10) || null)
+      : null;
+    const status = lengthType === "장편" ? statusType : null;
 
     if(!title || !author || !link){
       formMsg.textContent = "제목, 작가, 링크는 필수예요.";
@@ -407,10 +541,19 @@
     formMsg.textContent = "등록 중…";
     try{
       await addDoc(postsRef, {
-        title, author, link, keywords,
+        title, author, link, genreKeywords, pairingKeywords,
+        lengthType, episodes, status,
         createdAt: serverTimestamp()
       });
       addForm.reset();
+      // 세그먼트 버튼과 상태값 초기화 (자동완성/이전 선택 남지 않도록)
+      [...lengthSeg.children].forEach(b => b.classList.remove("active"));
+      lengthSeg.children[0].classList.add("active");
+      lengthType = "단편";
+      lengthExtra.style.display = "none";
+      [...statusSeg.children].forEach(b => b.classList.remove("active"));
+      statusSeg.children[0].classList.add("active");
+      statusType = "완결";
       formMsg.textContent = "등록 완료!";
       setTimeout(() => formMsg.textContent = "", 1500);
       await loadPosts();
