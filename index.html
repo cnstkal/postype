@@ -453,14 +453,6 @@
   <div class="search-row">
     <input type="text" id="searchInput" placeholder="제목 / 작가 / 키워드로 검색…">
   </div>
-  <div class="filter-tabs" id="filterTabs">
-    <button data-mode="all" class="active">전체</button>
-    <button data-mode="title">제목</button>
-    <button data-mode="author">작가</button>
-    <button data-mode="genre">장르</button>
-    <button data-mode="pairing">공수</button>
-    <button data-mode="cp">CP</button>
-  </div>
   <div class="filter-tabs" id="ageTabs">
     <button data-age="all" class="active">전체</button>
     <button data-age="all-ages">전체연령</button>
@@ -469,11 +461,10 @@
   </div>
   <div class="filter-tabs" id="langTabs">
     <button data-lang="all" class="active">언어 전체</button>
-    <button data-lang="한국어">한국어</button>
     <button data-lang="영어">영어</button>
-    <button data-lang="일본어">일본어</button>
     <button data-lang="중국어">중국어</button>
-    <button data-lang="기타">기타</button>
+    <button data-lang="러시아어">러시아어</button>
+    <button data-lang="프랑스어">프랑스어</button>
   </div>
 
   <details class="add-box" id="addBox">
@@ -498,11 +489,10 @@
       <div class="full">
         <label>원문 언어</label>
         <div class="seg" id="langSeg">
-          <button type="button" class="seg-btn active" data-val="한국어">한국어</button>
           <button type="button" class="seg-btn" data-val="영어">영어</button>
-          <button type="button" class="seg-btn" data-val="일본어">일본어</button>
           <button type="button" class="seg-btn" data-val="중국어">중국어</button>
-          <button type="button" class="seg-btn" data-val="기타">기타</button>
+          <button type="button" class="seg-btn" data-val="러시아어">러시아어</button>
+          <button type="button" class="seg-btn" data-val="프랑스어">프랑스어</button>
         </div>
       </div>
       <div>
@@ -623,13 +613,11 @@
   const postsRef = collection(db, "posts");
 
   let allPosts = [];
-  let mode = "all"; // all | title | author | genre | pairing
 
   const listEl = document.getElementById("list");
   const emptyMsg = document.getElementById("emptyMsg");
   const countRow = document.getElementById("countRow");
   const searchInput = document.getElementById("searchInput");
-  const filterTabs = document.getElementById("filterTabs");
   const addForm = document.getElementById("addForm");
   const formMsg = document.getElementById("formMsg");
   const lengthSeg = document.getElementById("lengthSeg");
@@ -651,8 +639,8 @@
   let editingId = null;
   let ageFilter = "all"; // all | 19 | all-ages
   let ageValue = "all-ages"; // form state: 19 | all-ages
-  let langFilter = "all"; // all | 한국어 | 영어 | ...
-  let langValue = "한국어"; // form state
+  let langFilter = "all"; // all | 영어 | 중국어 | 러시아어 | 프랑스어
+  let langValue = null; // form state: null = 한국어(기본, 미선택)
 
   ageSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -674,9 +662,14 @@
   langSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
     if(!btn) return;
+    const alreadyActive = btn.classList.contains("active");
     [...langSeg.children].forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    langValue = btn.dataset.val;
+    if(alreadyActive){
+      langValue = null; // 다시 누르면 선택 해제 (한국어/기본으로 취급)
+    } else {
+      btn.classList.add("active");
+      langValue = btn.dataset.val;
+    }
   });
 
   langTabs.addEventListener("click", (e) => {
@@ -694,7 +687,7 @@
     document.getElementById("f_author").value = post.author || "";
     document.getElementById("f_link").value = post.link || "";
     document.getElementById("f_site").value = post.site || "";
-    langValue = post.language || "한국어";
+    langValue = post.language || null;
     [...langSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === langValue));
     document.getElementById("f_genre").value = (post.genreKeywords || post.keywords || []).join(", ");
     document.getElementById("f_pairing").value = (post.pairingKeywords || []).join(", ");
@@ -735,8 +728,7 @@
     ageSeg.children[0].classList.add("active");
     ageValue = "all-ages";
     [...langSeg.children].forEach(b => b.classList.remove("active"));
-    langSeg.children[0].classList.add("active");
-    langValue = "한국어";
+    langValue = null;
     editingId = null;
     addBoxSummary.textContent = "새 글 등록하기";
     submitBtn.textContent = "등록하기";
@@ -778,15 +770,6 @@
     statusType = btn.dataset.val;
   });
 
-  filterTabs.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if(!btn) return;
-    [...filterTabs.children].forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    mode = btn.dataset.mode;
-    render();
-  });
-
   searchInput.addEventListener("input", render);
 
   async function loadPosts(){
@@ -808,12 +791,6 @@
     const genre = (post.genreKeywords || post.keywords || []).join(" ").toLowerCase();
     const pairing = (post.pairingKeywords || []).join(" ").toLowerCase();
     const cp = (post.cp || []).join(" ").toLowerCase();
-    if(mode === "title") return (post.title || "").toLowerCase().includes(t);
-    if(mode === "author") return (post.author || "").toLowerCase().includes(t);
-    if(mode === "genre") return genre.includes(t);
-    if(mode === "pairing") return pairing.includes(t);
-    if(mode === "cp") return cp.includes(t);
-    // all
     return (post.title||"").toLowerCase().includes(t)
       || (post.author||"").toLowerCase().includes(t)
       || genre.includes(t)
@@ -825,7 +802,7 @@
     const term = searchInput.value.trim();
     let filtered = allPosts.filter(p => matches(p, term));
     if(ageFilter !== "all") filtered = filtered.filter(p => (p.age || "all-ages") === ageFilter);
-    if(langFilter !== "all") filtered = filtered.filter(p => (p.language || "한국어") === langFilter);
+    if(langFilter !== "all") filtered = filtered.filter(p => p.language === langFilter);
 
     countRow.textContent = `총 ${allPosts.length}편 중 ${filtered.length}편`;
     listEl.innerHTML = "";
@@ -886,7 +863,7 @@
         ageBadge.textContent = "15금";
         badgeRow.appendChild(ageBadge);
       }
-      if(post.language && post.language !== "한국어"){
+      if(post.language){
         const langBadge = document.createElement("span");
         langBadge.className = "badge lang";
         langBadge.textContent = post.language;
@@ -917,9 +894,6 @@
           chip.textContent = k;
           chip.onclick = () => {
             searchInput.value = k;
-            [...filterTabs.children].forEach(b => b.classList.remove("active"));
-            filterTabs.querySelector(`[data-mode="${type}"]`).classList.add("active");
-            mode = type;
             render();
           };
           kwWrap.appendChild(chip);
