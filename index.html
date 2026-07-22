@@ -189,22 +189,53 @@
   .survey-submit:hover{background:var(--accent);}
   .result-head{
     display:flex; justify-content:space-between; align-items:center;
-    margin-bottom:16px; font-size:13px; color:var(--ink-soft);
+    margin-bottom:18px; padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .result-head #resultCount{
+    font-size:17px; font-weight:800; letter-spacing:-0.01em; color:var(--ink);
   }
   .link-btn{
     background:none; border:none; color:var(--accent);
     font-size:13px; cursor:pointer; font-family:inherit;
   }
   .result-card{
-    border:1px solid var(--line); border-radius:10px;
-    padding:14px 16px; margin-bottom:10px;
+    display:flex; gap:12px;
+    border:1px solid var(--line); border-radius:14px;
+    background:var(--card);
+    padding:16px 18px; margin-bottom:12px;
+    transition:border-color .15s, box-shadow .15s, transform .15s;
   }
+  .result-card:hover{
+    border-color:var(--accent);
+    box-shadow:0 4px 16px rgba(47,92,224,0.08);
+    transform:translateY(-1px);
+  }
+  .result-card .rrank{
+    flex-shrink:0;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:var(--accent-soft); color:var(--accent);
+    font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .result-card.top .rrank{background:var(--ink); color:#fff;}
+  .result-card .rbody{flex:1; min-width:0;}
+  .result-card .rtop{display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 8px; margin-bottom:6px;}
   .result-card .rtitle{
-    font-weight:700; font-size:15px; text-decoration:none; color:var(--ink);
+    font-weight:700; font-size:15.5px; text-decoration:none; color:var(--ink);
+    letter-spacing:-0.01em;
   }
   .result-card .rtitle:hover{color:var(--accent);}
-  .result-card .rauthor{font-size:12px; color:var(--ink-soft); margin-left:8px;}
-  .result-card .rmatch{font-size:12px; color:var(--accent); margin-top:6px;}
+  .result-card .rauthor{font-size:12px; color:var(--ink-soft);}
+  .result-card .rmatch{
+    display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;
+  }
+  .result-card .rmatch .mtag{
+    font-size:11px; font-weight:600;
+    color:var(--accent); background:var(--accent-soft);
+    padding:3px 9px; border-radius:999px;
+  }
 
   .search-row{
     display:flex; gap:10px; margin-bottom:36px;
@@ -379,7 +410,10 @@
   .post-author{
     font-size:13px; color:var(--ink-soft);
     white-space:nowrap; padding-top:4px;
+    background:none; border:none; font-family:inherit; cursor:pointer;
+    transition:color .15s;
   }
+  .post-author:hover{color:var(--accent); text-decoration:underline;}
   .badge-row{display:flex; gap:6px; flex-wrap:wrap;}
   .badge{
     font-size:11px;
@@ -464,8 +498,6 @@
     <button data-lang="영어">영어</button>
     <button data-lang="중국어">중국어</button>
     <button data-lang="러시아어">러시아어</button>
-    <button data-lang="프랑스어">프랑스어</button>
-    <button data-lang="포르투갈어">포르투갈어</button>
   </div>
 
   <details class="add-box" id="addBox">
@@ -497,8 +529,6 @@
           <button type="button" class="seg-btn" data-val="영어">영어</button>
           <button type="button" class="seg-btn" data-val="중국어">중국어</button>
           <button type="button" class="seg-btn" data-val="러시아어">러시아어</button>
-          <button type="button" class="seg-btn" data-val="프랑스어">프랑스어</button>
-          <button type="button" class="seg-btn" data-val="포르투갈어">포르투갈어</button>
         </div>
       </div>
       <div>
@@ -646,7 +676,7 @@
   let editingId = null;
   let ageFilter = "all"; // all | 19 | all-ages
   let ageValue = "all-ages"; // form state: 19 | all-ages
-  let langFilter = "all"; // all | 영어 | 중국어 | 러시아어 | 프랑스어 | 포르투갈어
+  let langFilter = "all"; // all | 영어 | 중국어 | 러시아어
   let langValue = null; // form state: null = 한국어(기본, 미선택)
   let siteValue = null; // form state: AO3 | 픽북 | 웨이보 | null
 
@@ -851,9 +881,13 @@
       a.className = "post-title";
       a.textContent = post.title;
 
-      const author = document.createElement("div");
+      const author = document.createElement("button");
+      author.type = "button";
       author.className = "post-author";
       author.textContent = post.author ? `by ${post.author}` : "";
+      if(post.author){
+        author.onclick = () => { searchInput.value = post.author; render(); };
+      }
 
       top.appendChild(a);
       top.appendChild(author);
@@ -1274,21 +1308,40 @@
       resultList.appendChild(p);
     } else {
       resultCount.textContent = `${scoredFinal.length}편을 추천해요`;
-      scoredFinal.forEach(({post, matchedTags}) => {
+      scoredFinal.forEach(({post, matchedTags}, i) => {
         const card = document.createElement("div");
-        card.className = "result-card";
+        card.className = "result-card" + (i === 0 ? " top" : "");
+
+        const rank = document.createElement("div");
+        rank.className = "rrank";
+        rank.textContent = i + 1;
+        card.appendChild(rank);
+
+        const bodyEl = document.createElement("div");
+        bodyEl.className = "rbody";
+
+        const topRow = document.createElement("div");
+        topRow.className = "rtop";
         const a = document.createElement("a");
         a.href = post.link; a.target = "_blank"; a.rel = "noopener noreferrer";
         a.className = "rtitle"; a.textContent = post.title;
         const author = document.createElement("span");
         author.className = "rauthor"; author.textContent = "by " + post.author;
-        card.appendChild(a); card.appendChild(author);
+        topRow.appendChild(a); topRow.appendChild(author);
+        bodyEl.appendChild(topRow);
+
         if(matchedTags.length){
           const m = document.createElement("div");
           m.className = "rmatch";
-          m.textContent = "겹치는 취향: " + [...new Set(matchedTags)].join(", ");
-          card.appendChild(m);
+          [...new Set(matchedTags)].forEach(t => {
+            const tag = document.createElement("span");
+            tag.className = "mtag";
+            tag.textContent = t;
+            m.appendChild(tag);
+          });
+          bodyEl.appendChild(m);
         }
+        card.appendChild(bodyEl);
         resultList.appendChild(card);
       });
     }
