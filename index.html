@@ -1016,52 +1016,93 @@
     return t;
   }
 
-  async function fetchLinkInfo(){
+  function fetchWithTimeout(url, ms){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
+  // 유튜브는 공식 oEmbed API로 즉시(프록시 없이) 제목/채널명을 가져올 수 있음
+  async function tryYoutubeOEmbed(link){
+    const host = new URL(link).hostname.replace(/^www\./, "");
+    if(!/(^|\.)youtube\.com$|^youtu\.be$/.test(host)) return null;
+    const res = await fetchWithTimeout(
+      "https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(link),
+      4000
+    );
+    if(!res.ok) throw new Error("oembed failed");
+    const data = await res.json();
+    return { title: data.title || "", author: data.author_name || "" };
+  }
+
+  // 일반 사이트: 가벼운 리더 프록시로 빠르게 title/meta만 긁어옴 (타임아웃 짧게)
+  async function tryGenericFetch(link){
+    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(link);
+    const res = await fetchWithTimeout(proxyUrl, 6000);
+    if(!res.ok) throw new Error("fetch failed");
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const ogTitle = doc.querySelector('meta[property="og:title"]')?.content;
+    const rawTitle = ogTitle || doc.querySelector("title")?.textContent || "";
+    const guessedTitle = cleanupSiteTitle(rawTitle);
+
+    const authorMeta =
+      doc.querySelector('meta[name="author"]')?.content ||
+      doc.querySelector('meta[property="article:author"]')?.content ||
+      doc.querySelector('meta[property="og:novel:author"]')?.content ||
+      doc.querySelector('meta[name="twitter:creator"]')?.content ||
+      "";
+
+    return { title: guessedTitle, author: authorMeta.replace(/^@/, "").trim() };
+  }
+
+  let lastFetchedLink = "";
+
+  async function fetchLinkInfo(auto){
     const link = document.getElementById("f_link").value.trim();
-    if(!link){
-      fetchLinkInfoMsg.textContent = "먼저 링크를 입력해주세요.";
-      fetchLinkInfoMsg.style.color = "var(--accent)";
+    if(!link || !/^https?:\/\//.test(link)){
+      if(!auto){
+        fetchLinkInfoMsg.textContent = "먼저 링크를 입력해주세요.";
+        fetchLinkInfoMsg.style.color = "var(--accent)";
+      }
       return;
     }
+    // 자동 트리거일 때는 같은 링크로 이미 시도했으면 중복 호출 안 함
+    if(auto && link === lastFetchedLink) return;
+    lastFetchedLink = link;
+
     fetchLinkInfoBtn.disabled = true;
     fetchLinkInfoMsg.textContent = "정보를 가져오는 중...";
     fetchLinkInfoMsg.style.color = "var(--ink-soft)";
+
     try{
-      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(link);
-      const res = await fetch(proxyUrl);
-      if(!res.ok) throw new Error("fetch failed");
-      const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
+      let info = null;
+      try{
+        info = await tryYoutubeOEmbed(link);
+      }catch(e){ /* 유튜브 시도 실패시 일반 방식으로 폴백 */ }
 
-      const ogTitle = doc.querySelector('meta[property="og:title"]')?.content;
-      const rawTitle = ogTitle || doc.querySelector("title")?.textContent || "";
-      const host = new URL(link).hostname;
-      const guessedTitle = cleanupSiteTitle(rawTitle, host);
-
-      const authorMeta =
-        doc.querySelector('meta[name="author"]')?.content ||
-        doc.querySelector('meta[property="article:author"]')?.content ||
-        doc.querySelector('meta[property="og:novel:author"]')?.content ||
-        doc.querySelector('meta[name="twitter:creator"]')?.content ||
-        "";
+      if(!info){
+        info = await tryGenericFetch(link);
+      }
 
       const titleField = document.getElementById("f_title");
       const authorField = document.getElementById("f_author");
 
       let filled = [];
-      if(guessedTitle && !titleField.value.trim()){
-        titleField.value = guessedTitle;
+      if(info.title && !titleField.value.trim()){
+        titleField.value = info.title;
         filled.push("제목");
       }
-      if(authorMeta && !authorField.value.trim()){
-        authorField.value = authorMeta.replace(/^@/, "").trim();
+      if(info.author && !authorField.value.trim()){
+        authorField.value = info.author;
         filled.push("작가");
       }
 
       if(filled.length){
         fetchLinkInfoMsg.textContent = `${filled.join(", ")}을(를) 자동으로 채웠어요. 확인 후 필요하면 수정해주세요.`;
         fetchLinkInfoMsg.style.color = "var(--accent)";
-      } else if(guessedTitle && !authorMeta){
+      } else if(info.title){
         fetchLinkInfoMsg.textContent = "제목은 채웠지만 작가 정보는 찾지 못했어요. 직접 입력해주세요.";
         fetchLinkInfoMsg.style.color = "var(--ink-soft)";
       } else {
@@ -1069,14 +1110,17 @@
         fetchLinkInfoMsg.style.color = "var(--ink-soft)";
       }
     }catch(err){
-      fetchLinkInfoMsg.textContent = "정보를 가져오지 못했어요. 직접 입력해주세요.";
+      fetchLinkInfoMsg.textContent = err?.name === "AbortError"
+        ? "응답이 너무 느려서 중단했어요. 직접 입력해주세요."
+        : "정보를 가져오지 못했어요. 직접 입력해주세요.";
       fetchLinkInfoMsg.style.color = "var(--ink-soft)";
     }finally{
       fetchLinkInfoBtn.disabled = false;
     }
   }
 
-  fetchLinkInfoBtn.addEventListener("click", fetchLinkInfo);
+  fetchLinkInfoBtn.addEventListener("click", () => fetchLinkInfo(false));
+  document.getElementById("f_link").addEventListener("blur", () => fetchLinkInfo(true));
 
   addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
