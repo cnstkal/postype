@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>팬픽 아카이브</title>
 <style>
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
@@ -17,13 +17,15 @@
     --card:#FFFFFF;
   }
 
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box; touch-action:manipulation;}
+  html{touch-action:manipulation;}
   body{
     margin:0;
     background:var(--bg);
     color:var(--ink);
     font-family:'Pretendard', sans-serif;
     -webkit-font-smoothing:antialiased;
+    touch-action:manipulation;
   }
 
   .wrap{max-width:760px;margin:0 auto;padding:64px 24px 120px;}
@@ -246,7 +248,7 @@
     border:1.5px solid var(--line);
     background:var(--card);
     border-radius:10px;
-    font-size:15px;
+    font-size:16px;
     font-family:inherit;
     color:var(--ink);
     outline:none;
@@ -307,7 +309,7 @@
     border:1px solid var(--line);
     border-radius:8px;
     font-family:inherit;
-    font-size:14px;
+    font-size:16px;
     background:#fff;
     color:var(--ink);
   }
@@ -376,7 +378,7 @@
     border:1px solid var(--line);
     border-radius:8px;
     font-family:inherit;
-    font-size:14px;
+    font-size:16px;
     background:#fff;
     color:var(--ink);
   }
@@ -513,7 +515,11 @@
       </div>
       <div>
         <label>링크</label>
-        <input type="url" id="f_link" required placeholder="https://..." autocomplete="off">
+        <div style="display:flex; gap:6px;">
+          <input type="url" id="f_link" required placeholder="https://..." autocomplete="off" style="flex:1;">
+          <button type="button" id="fetchLinkInfoBtn" style="flex-shrink:0; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink-soft); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">가져오기</button>
+        </div>
+        <div id="fetchLinkInfoMsg" style="font-size:11px; color:var(--ink-soft); margin-top:4px; min-height:14px;"></div>
       </div>
       <div class="full">
         <label>게재 사이트</label>
@@ -987,6 +993,90 @@
       listEl.appendChild(card);
     });
   }
+
+  const fetchLinkInfoBtn = document.getElementById("fetchLinkInfoBtn");
+  const fetchLinkInfoMsg = document.getElementById("fetchLinkInfoMsg");
+
+  function cleanupSiteTitle(rawTitle, urlHost){
+    if(!rawTitle) return "";
+    let t = rawTitle.trim();
+    // 흔한 구분자(-, |, :, ::, —) 뒤에 붙는 사이트명 제거 시도
+    const seps = [" - ", " | ", " :: ", " — ", " · "];
+    for(const sep of seps){
+      if(t.includes(sep)){
+        const parts = t.split(sep).map(s => s.trim()).filter(Boolean);
+        if(parts.length > 1){
+          // 가장 긴 조각을 제목으로 추정 (사이트명은 대개 짧음)
+          parts.sort((a,b) => b.length - a.length);
+          t = parts[0];
+        }
+        break;
+      }
+    }
+    return t;
+  }
+
+  async function fetchLinkInfo(){
+    const link = document.getElementById("f_link").value.trim();
+    if(!link){
+      fetchLinkInfoMsg.textContent = "먼저 링크를 입력해주세요.";
+      fetchLinkInfoMsg.style.color = "var(--accent)";
+      return;
+    }
+    fetchLinkInfoBtn.disabled = true;
+    fetchLinkInfoMsg.textContent = "정보를 가져오는 중...";
+    fetchLinkInfoMsg.style.color = "var(--ink-soft)";
+    try{
+      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(link);
+      const res = await fetch(proxyUrl);
+      if(!res.ok) throw new Error("fetch failed");
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+
+      const ogTitle = doc.querySelector('meta[property="og:title"]')?.content;
+      const rawTitle = ogTitle || doc.querySelector("title")?.textContent || "";
+      const host = new URL(link).hostname;
+      const guessedTitle = cleanupSiteTitle(rawTitle, host);
+
+      const authorMeta =
+        doc.querySelector('meta[name="author"]')?.content ||
+        doc.querySelector('meta[property="article:author"]')?.content ||
+        doc.querySelector('meta[property="og:novel:author"]')?.content ||
+        doc.querySelector('meta[name="twitter:creator"]')?.content ||
+        "";
+
+      const titleField = document.getElementById("f_title");
+      const authorField = document.getElementById("f_author");
+
+      let filled = [];
+      if(guessedTitle && !titleField.value.trim()){
+        titleField.value = guessedTitle;
+        filled.push("제목");
+      }
+      if(authorMeta && !authorField.value.trim()){
+        authorField.value = authorMeta.replace(/^@/, "").trim();
+        filled.push("작가");
+      }
+
+      if(filled.length){
+        fetchLinkInfoMsg.textContent = `${filled.join(", ")}을(를) 자동으로 채웠어요. 확인 후 필요하면 수정해주세요.`;
+        fetchLinkInfoMsg.style.color = "var(--accent)";
+      } else if(guessedTitle && !authorMeta){
+        fetchLinkInfoMsg.textContent = "제목은 채웠지만 작가 정보는 찾지 못했어요. 직접 입력해주세요.";
+        fetchLinkInfoMsg.style.color = "var(--ink-soft)";
+      } else {
+        fetchLinkInfoMsg.textContent = "자동으로 채울 정보를 찾지 못했어요. 직접 입력해주세요.";
+        fetchLinkInfoMsg.style.color = "var(--ink-soft)";
+      }
+    }catch(err){
+      fetchLinkInfoMsg.textContent = "정보를 가져오지 못했어요. 직접 입력해주세요.";
+      fetchLinkInfoMsg.style.color = "var(--ink-soft)";
+    }finally{
+      fetchLinkInfoBtn.disabled = false;
+    }
+  }
+
+  fetchLinkInfoBtn.addEventListener("click", fetchLinkInfo);
 
   addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
