@@ -1042,6 +1042,20 @@
     if(!res.ok) throw new Error("fetch failed");
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
+    const host = new URL(link).hostname.replace(/^www\./, "");
+
+    // AO3(Archive of Our Own)는 <title>이 "작품명 - 작가 [Archive of Our Own]" 형식이고
+    // 작가는 메타태그가 아니라 본문 byline 링크(rel="author")에 들어있음
+    if(host === "archiveofourown.org"){
+      let rawTitle = (doc.querySelector("title")?.textContent || "").replace(/\s*\[Archive of Our Own\]\s*$/i, "").trim();
+      const bylineAuthor = doc.querySelector('a[rel="author"]')?.textContent?.trim() || "";
+      // "작품명 - 작가" 또는 "작품명 - 작가 - 팬덤" 형태에서 앞부분만 제목으로 사용
+      let title = rawTitle;
+      if(rawTitle.includes(" - ")){
+        title = rawTitle.split(" - ")[0].trim();
+      }
+      return { title, author: bylineAuthor };
+    }
 
     const ogTitle = doc.querySelector('meta[property="og:title"]')?.content;
     const rawTitle = ogTitle || doc.querySelector("title")?.textContent || "";
