@@ -381,6 +381,13 @@
   .add-form .msg{grid-column:1/-1; font-size:13px; color:var(--accent); min-height:16px;}
 
   .seg{display:flex; gap:6px;}
+  .cp-select-all{
+    margin-left:8px; padding:2px 8px; border-radius:6px;
+    border:1px solid var(--line); background:transparent;
+    color:var(--accent); font-size:11px; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
+  .cp-select-all:hover{background:var(--accent-soft);}
   .cp-seg{flex-wrap:wrap;}
   .seg-btn{
     padding:9px 16px;
@@ -573,7 +580,7 @@
       <div class="full">
         <label>게재 사이트</label>
         <div class="seg" id="siteSeg">
-          <button type="button" class="seg-btn" data-val="AO3">AO3</button>
+          <button type="button" class="seg-btn active" data-val="AO3">AO3</button>
           <button type="button" class="seg-btn" data-val="픽북">픽북</button>
           <button type="button" class="seg-btn" data-val="웨이보">웨이보</button>
         </div>
@@ -581,7 +588,7 @@
       <div class="full">
         <label>원문 언어</label>
         <div class="seg" id="langSeg">
-          <button type="button" class="seg-btn" data-val="영어">영어</button>
+          <button type="button" class="seg-btn active" data-val="영어">영어</button>
           <button type="button" class="seg-btn" data-val="중국어">중국어</button>
           <button type="button" class="seg-btn" data-val="러시아어">러시아어</button>
         </div>
@@ -596,10 +603,11 @@
       </div>
 
       <div class="full">
-        <label>CP (복수 선택 가능)</label>
+        <label>CP (복수 선택 가능) <button type="button" id="cpSelectAllBtn" class="cp-select-all">전체 선택</button></label>
         <div class="seg cp-seg" id="cpSeg">
           <button type="button" class="seg-btn" data-val="섷윤">섷윤</button>
           <button type="button" class="seg-btn" data-val="몽윦">몽윦</button>
+          <button type="button" class="seg-btn" data-val="몹윦">몹윦</button>
           <button type="button" class="seg-btn" data-val="솽윦">솽윦</button>
           <button type="button" class="seg-btn" data-val="낫윤">낫윤</button>
           <button type="button" class="seg-btn" data-val="밍윦">밍윦</button>
@@ -612,9 +620,9 @@
       <div class="full">
         <label>연령 등급</label>
         <div class="seg" id="ageSeg">
-          <button type="button" class="seg-btn active" data-val="all-ages">전체연령</button>
+          <button type="button" class="seg-btn" data-val="all-ages">전체연령</button>
           <button type="button" class="seg-btn" data-val="15">15금</button>
-          <button type="button" class="seg-btn" data-val="19">19금</button>
+          <button type="button" class="seg-btn active" data-val="19">19금</button>
         </div>
       </div>
 
@@ -730,16 +738,17 @@
   const genreTabs = document.getElementById("genreTabs");
   const cpTabs = document.getElementById("cpTabs");
   const paginationEl = document.getElementById("pagination");
+  const cpSelectAllBtn = document.getElementById("cpSelectAllBtn");
 
   let lengthType = "단편";
   let statusType = "완결";
   let selectedCp = [];
   let editingId = null;
   let ageFilter = "all"; // all | 19 | all-ages
-  let ageValue = "all-ages"; // form state: 19 | all-ages
+  let ageValue = "19"; // form state: 19 | 15 | all-ages
   let langFilter = "all"; // all | 영어 | 중국어 | 러시아어
-  let langValue = null; // form state: null = 한국어(기본, 미선택)
-  let siteValue = null; // form state: AO3 | 픽북 | 웨이보 | null
+  let langValue = "영어"; // form state: 기본값 영어(AO3 기준)
+  let siteValue = "AO3"; // form state: AO3 | 픽북 | 웨이보 | null
   let sortMode = "new"; // new | old | title
   let genreFilter = "all";
   let cpFilter = "all";
@@ -896,6 +905,7 @@
 
     selectedCp = [...(post.cp || [])];
     [...cpSeg.children].forEach(b => b.classList.toggle("active", selectedCp.includes(b.dataset.val)));
+    cpSelectAllBtn.textContent = [...cpSeg.children].every(b => selectedCp.includes(b.dataset.val)) ? "전체 해제" : "전체 선택";
 
     ageValue = (post.age === "19" || post.age === "15") ? post.age : "all-ages";
     [...ageSeg.children].forEach(b => b.classList.toggle("active", b.dataset.val === ageValue));
@@ -919,13 +929,16 @@
     statusType = "완결";
     [...cpSeg.children].forEach(b => b.classList.remove("active"));
     selectedCp = [];
+    cpSelectAllBtn.textContent = "전체 선택";
     [...ageSeg.children].forEach(b => b.classList.remove("active"));
-    ageSeg.children[0].classList.add("active");
-    ageValue = "all-ages";
+    ageSeg.querySelector('[data-val="19"]').classList.add("active");
+    ageValue = "19";
     [...langSeg.children].forEach(b => b.classList.remove("active"));
-    langValue = null;
+    langSeg.querySelector('[data-val="영어"]').classList.add("active");
+    langValue = "영어";
     [...siteSeg.children].forEach(b => b.classList.remove("active"));
-    siteValue = null;
+    siteSeg.querySelector('[data-val="AO3"]').classList.add("active");
+    siteValue = "AO3";
     editingId = null;
     addBoxSummary.textContent = "새 글 등록하기";
     submitBtn.textContent = "등록하기";
@@ -935,6 +948,20 @@
   cancelEditBtn.addEventListener("click", () => {
     resetFormState();
     addBox.open = false;
+  });
+
+  cpSelectAllBtn.addEventListener("click", () => {
+    const allVals = [...cpSeg.children].map(b => b.dataset.val);
+    const allSelected = allVals.every(v => selectedCp.includes(v));
+    if(allSelected){
+      selectedCp = [];
+      [...cpSeg.children].forEach(b => b.classList.remove("active"));
+      cpSelectAllBtn.textContent = "전체 선택";
+    } else {
+      selectedCp = [...allVals];
+      [...cpSeg.children].forEach(b => b.classList.add("active"));
+      cpSelectAllBtn.textContent = "전체 해제";
+    }
   });
 
   cpSeg.addEventListener("click", (e) => {
@@ -948,6 +975,8 @@
       selectedCp.push(val);
       btn.classList.add("active");
     }
+    const allVals = [...cpSeg.children].map(b => b.dataset.val);
+    cpSelectAllBtn.textContent = allVals.every(v => selectedCp.includes(v)) ? "전체 해제" : "전체 선택";
   });
 
   lengthSeg.addEventListener("click", (e) => {
@@ -1414,6 +1443,7 @@
   const CP_POOL = [
     { label: "말하지 않아도 자연스럽게 챙겨주는 사이가 좋아", value: "섷윤" },
 { label: "서로 다른 매력이 의외로 잘 맞는 조합이 좋아", value: "몽윦" },
+{ label: "함께 있을 때 자연스럽게 편안해지는 관계가 좋아", value: "몹윦" },
 { label: "익숙했던 사이가 어느 순간 달라지는 게 좋아", value: "밍윦" },
 { label: "한쪽이 시작하면 다른 쪽이 자연스럽게 받아주는 게 좋아", value: "웡윤" },
 { label: "생각했던 것과 은근히 반대인 관계가 재밌어", value: "쫑윦" },
