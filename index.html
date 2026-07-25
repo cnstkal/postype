@@ -505,6 +505,7 @@
   <details class="add-box" id="addBox">
     <summary id="addBoxSummary">새 글 등록하기</summary>
     <form class="add-form" id="addForm" autocomplete="off">
+      <div class="msg" id="dupMsg" style="display:none; color:#d33;"></div>
       <div class="full">
         <label>제목</label>
         <input type="text" id="f_title" required placeholder="글 제목" autocomplete="off">
@@ -773,6 +774,7 @@
 
   function resetFormState(){
     addForm.reset();
+    dupMsg.style.display = "none";
     [...lengthSeg.children].forEach(b => b.classList.remove("active"));
     lengthSeg.children[0].classList.add("active");
     lengthType = "단편";
@@ -1144,15 +1146,16 @@
     );
   }
 
+  const dupMsg = document.getElementById("dupMsg");
   function checkDuplicateOnBlur(){
     const title = document.getElementById("f_title").value.trim();
     const author = document.getElementById("f_author").value.trim();
     if(title && author && isDuplicatePost(title, author)){
-      formMsg.textContent = "이미 등록된 제목/작가 조합이에요.";
-      formMsg.style.color = "#d33";
+      dupMsg.textContent = "이미 등록된 제목/작가 조합이에요.";
+      dupMsg.style.display = "block";
       return true;
     }
-    formMsg.style.color = "";
+    dupMsg.style.display = "none";
     return false;
   }
   document.getElementById("f_author").addEventListener("blur", checkDuplicateOnBlur);
