@@ -272,6 +272,43 @@
     background:var(--accent); border-color:var(--accent); color:#fff;
   }
 
+  .toolbar-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .sort-select{
+    padding:8px 12px; border:1px solid var(--line); border-radius:8px;
+    background:var(--card); color:var(--ink); font-family:inherit; font-size:13px;
+    cursor:pointer;
+  }
+  .bookmark-toggle{
+    padding:7px 14px; border-radius:999px; border:1px solid var(--line);
+    background:transparent; color:var(--ink-soft); font-size:13px;
+    cursor:pointer; font-family:inherit; transition:all .15s;
+  }
+  .bookmark-toggle.active{background:#FFF3D6; border-color:#F0C24B; color:#9A6B00;}
+
+  .star-btn{
+    background:none; border:none; cursor:pointer; font-size:16px;
+    color:var(--line); padding:0; line-height:1;
+  }
+  .star-btn.on{color:#F0B429;}
+
+  .badge.new{background:var(--accent); color:#fff;}
+
+  .pagination{
+    display:flex; justify-content:center; align-items:center;
+    gap:6px; margin-top:24px; flex-wrap:wrap;
+  }
+  .pagination button{
+    min-width:32px; height:32px; padding:0 8px;
+    border:1px solid var(--line); border-radius:8px;
+    background:var(--card); color:var(--ink); font-family:inherit;
+    font-size:13px; cursor:pointer;
+  }
+  .pagination button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .pagination button:disabled{opacity:0.4; cursor:default;}
+
   details.add-box{
     margin-bottom:40px;
     border:1px solid var(--line);
@@ -489,6 +526,14 @@
   <div class="search-row">
     <input type="text" id="searchInput" placeholder="제목 / 작가 / 키워드로 검색…">
   </div>
+  <div class="toolbar-row">
+    <select class="sort-select" id="sortSelect">
+      <option value="new">최신순</option>
+      <option value="old">오래된순</option>
+      <option value="title">제목순</option>
+    </select>
+    <button type="button" class="bookmark-toggle" id="bookmarkToggle">☆ 즐겨찾기만 보기</button>
+  </div>
   <div class="filter-tabs" id="ageTabs">
     <button data-age="all" class="active">전체</button>
     <button data-age="all-ages">전체연령</button>
@@ -501,6 +546,8 @@
     <button data-lang="중국어">중국어</button>
     <button data-lang="러시아어">러시아어</button>
   </div>
+  <div class="filter-tabs" id="genreTabs"></div>
+  <div class="filter-tabs" id="cpTabs"></div>
 
   <details class="add-box" id="addBox">
     <summary id="addBoxSummary">새 글 등록하기</summary>
@@ -603,6 +650,7 @@
   <div class="count-row" id="countRow"></div>
   <div class="list" id="list"></div>
   <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 글이 없어요. 위에서 새 글을 등록해보세요.</div>
+  <div class="pagination" id="pagination"></div>
 </div>
 
 <div class="modal-overlay" id="surveyOverlay">
@@ -676,6 +724,11 @@
   const langSeg = document.getElementById("langSeg");
   const langTabs = document.getElementById("langTabs");
   const siteSeg = document.getElementById("siteSeg");
+  const sortSelect = document.getElementById("sortSelect");
+  const bookmarkToggle = document.getElementById("bookmarkToggle");
+  const genreTabs = document.getElementById("genreTabs");
+  const cpTabs = document.getElementById("cpTabs");
+  const paginationEl = document.getElementById("pagination");
 
   let lengthType = "단편";
   let statusType = "완결";
@@ -686,6 +739,85 @@
   let langFilter = "all"; // all | 영어 | 중국어 | 러시아어
   let langValue = null; // form state: null = 한국어(기본, 미선택)
   let siteValue = null; // form state: AO3 | 픽북 | 웨이보 | null
+  let sortMode = "new"; // new | old | title
+  let genreFilter = "all";
+  let cpFilter = "all";
+  let bookmarkOnly = false;
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let bookmarks = new Set(JSON.parse(localStorage.getItem("bookmarks") || "[]"));
+
+  function saveBookmarks(){
+    localStorage.setItem("bookmarks", JSON.stringify([...bookmarks]));
+  }
+  function isNew(post){
+    const t = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate() : null;
+    if(!t) return false;
+    return (Date.now() - t.getTime()) < 3*24*60*60*1000;
+  }
+  function buildFilterChips(){
+    const genreCount = {};
+    const cpCount = {};
+    allPosts.forEach(p => {
+      (p.genreKeywords || p.keywords || []).forEach(k => genreCount[k] = (genreCount[k]||0)+1);
+      (p.cp || []).forEach(k => cpCount[k] = (cpCount[k]||0)+1);
+    });
+    const topGenres = Object.keys(genreCount).sort((a,b)=>genreCount[b]-genreCount[a]).slice(0,12);
+    const topCps = Object.keys(cpCount).sort((a,b)=>cpCount[b]-cpCount[a]).slice(0,12);
+
+    genreTabs.innerHTML = "";
+    if(topGenres.length){
+      const allBtn = document.createElement("button");
+      allBtn.textContent = "장르 전체"; allBtn.dataset.genre = "all";
+      allBtn.className = genreFilter === "all" ? "active" : "";
+      genreTabs.appendChild(allBtn);
+      topGenres.forEach(g => {
+        const b = document.createElement("button");
+        b.textContent = g; b.dataset.genre = g;
+        b.className = genreFilter === g ? "active" : "";
+        genreTabs.appendChild(b);
+      });
+    }
+    cpTabs.innerHTML = "";
+    if(topCps.length){
+      const allBtn = document.createElement("button");
+      allBtn.textContent = "CP 전체"; allBtn.dataset.cp = "all";
+      allBtn.className = cpFilter === "all" ? "active" : "";
+      cpTabs.appendChild(allBtn);
+      topCps.forEach(c => {
+        const b = document.createElement("button");
+        b.textContent = c; b.dataset.cp = c;
+        b.className = cpFilter === c ? "active" : "";
+        cpTabs.appendChild(b);
+      });
+    }
+  }
+  genreTabs.addEventListener("click", (e) => {
+    const btn = e.target.closest("button"); if(!btn) return;
+    genreFilter = btn.dataset.genre;
+    currentPage = 1;
+    buildFilterChips();
+    render();
+  });
+  cpTabs.addEventListener("click", (e) => {
+    const btn = e.target.closest("button"); if(!btn) return;
+    cpFilter = btn.dataset.cp;
+    currentPage = 1;
+    buildFilterChips();
+    render();
+  });
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    currentPage = 1;
+    render();
+  });
+  bookmarkToggle.addEventListener("click", () => {
+    bookmarkOnly = !bookmarkOnly;
+    bookmarkToggle.classList.toggle("active", bookmarkOnly);
+    bookmarkToggle.textContent = (bookmarkOnly ? "★" : "☆") + " 즐겨찾기만 보기";
+    currentPage = 1;
+    render();
+  });
 
   ageSeg.addEventListener("click", (e) => {
     const btn = e.target.closest(".seg-btn");
@@ -701,6 +833,7 @@
     [...ageTabs.children].forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     ageFilter = btn.dataset.age;
+    currentPage = 1;
     render();
   });
 
@@ -723,6 +856,7 @@
     [...langTabs.children].forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     langFilter = btn.dataset.lang;
+    currentPage = 1;
     render();
   });
 
@@ -832,7 +966,7 @@
     statusType = btn.dataset.val;
   });
 
-  searchInput.addEventListener("input", render);
+  searchInput.addEventListener("input", () => { currentPage = 1; render(); });
 
   async function loadPosts(){
     try{
@@ -844,11 +978,11 @@
       const snap = await getDocs(postsRef);
       allPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
+    buildFilterChips();
     render();
   }
 
   function matches(post, term){
-    if(!term) return true;
     const t = term.toLowerCase();
     const genre = (post.genreKeywords || post.keywords || []).join(" ").toLowerCase();
     const pairing = (post.pairingKeywords || []).join(" ").toLowerCase();
@@ -865,6 +999,16 @@
     let filtered = allPosts.filter(p => matches(p, term));
     if(ageFilter !== "all") filtered = filtered.filter(p => (p.age || "all-ages") === ageFilter);
     if(langFilter !== "all") filtered = filtered.filter(p => p.language === langFilter);
+    if(genreFilter !== "all") filtered = filtered.filter(p => (p.genreKeywords||p.keywords||[]).includes(genreFilter));
+    if(cpFilter !== "all") filtered = filtered.filter(p => (p.cp||[]).includes(cpFilter));
+    if(bookmarkOnly) filtered = filtered.filter(p => bookmarks.has(p.id));
+
+    if(sortMode === "title"){
+      filtered = [...filtered].sort((a,b) => (a.title||"").localeCompare(b.title||"", "ko"));
+    } else if(sortMode === "old"){
+      filtered = [...filtered].reverse();
+    }
+    // 기본(new)은 allPosts가 이미 createdAt desc라 그대로 둠
 
     countRow.textContent = `총 ${allPosts.length}편 중 ${filtered.length}편`;
     listEl.innerHTML = "";
@@ -875,7 +1019,12 @@
       emptyMsg.textContent = "아직 등록된 글이 없어요. 위에서 새 글을 등록해보세요.";
     }
 
-    filtered.forEach(post => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if(currentPage > totalPages) currentPage = totalPages;
+    const pageItems = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+    renderPagination(totalPages);
+
+    pageItems.forEach(post => {
       const card = document.createElement("div");
       card.className = "post-card";
 
@@ -897,12 +1046,30 @@
         author.onclick = () => { searchInput.value = post.author; render(); };
       }
 
+      const star = document.createElement("button");
+      star.type = "button";
+      star.className = "star-btn" + (bookmarks.has(post.id) ? " on" : "");
+      star.textContent = bookmarks.has(post.id) ? "★" : "☆";
+      star.title = "즐겨찾기";
+      star.onclick = () => {
+        if(bookmarks.has(post.id)) bookmarks.delete(post.id); else bookmarks.add(post.id);
+        saveBookmarks();
+        render();
+      };
+
       top.appendChild(a);
       top.appendChild(author);
+      top.appendChild(star);
       card.appendChild(top);
 
       const badgeRow = document.createElement("div");
       badgeRow.className = "badge-row";
+      if(isNew(post)){
+        const newBadge = document.createElement("span");
+        newBadge.className = "badge new";
+        newBadge.textContent = "NEW";
+        badgeRow.appendChild(newBadge);
+      }
       const lengthBadge = document.createElement("span");
       lengthBadge.className = "badge";
       if(post.lengthType === "장편"){
@@ -994,6 +1161,27 @@
 
       listEl.appendChild(card);
     });
+  }
+
+  function renderPagination(totalPages){
+    paginationEl.innerHTML = "";
+    if(totalPages <= 1) return;
+    const mkBtn = (label, page, opts={}) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if(opts.active) b.classList.add("active");
+      if(opts.disabled) b.disabled = true;
+      b.onclick = () => { currentPage = page; render(); listEl.scrollIntoView({behavior:"smooth", block:"start"}); };
+      return b;
+    };
+    paginationEl.appendChild(mkBtn("이전", currentPage-1, { disabled: currentPage === 1 }));
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + 4);
+    start = Math.max(1, end - 4);
+    for(let p = start; p <= end; p++){
+      paginationEl.appendChild(mkBtn(String(p), p, { active: p === currentPage }));
+    }
+    paginationEl.appendChild(mkBtn("다음", currentPage+1, { disabled: currentPage === totalPages }));
   }
 
   const fetchLinkInfoBtn = document.getElementById("fetchLinkInfoBtn");
