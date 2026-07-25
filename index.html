@@ -1136,12 +1136,35 @@
   fetchLinkInfoBtn.addEventListener("click", () => fetchLinkInfo(false));
   document.getElementById("f_link").addEventListener("blur", () => fetchLinkInfo(true));
 
+  function isDuplicatePost(title, author){
+    return allPosts.some(p =>
+      p.id !== editingId &&
+      (p.title||"").trim().toLowerCase() === title.toLowerCase() &&
+      (p.author||"").trim().toLowerCase() === author.toLowerCase()
+    );
+  }
+
+  function checkDuplicateOnBlur(){
+    const title = document.getElementById("f_title").value.trim();
+    const author = document.getElementById("f_author").value.trim();
+    if(title && author && isDuplicatePost(title, author)){
+      formMsg.textContent = "이미 등록된 제목/작가 조합이에요.";
+      formMsg.style.color = "#d33";
+      return true;
+    }
+    formMsg.style.color = "";
+    return false;
+  }
+  document.getElementById("f_author").addEventListener("blur", checkDuplicateOnBlur);
+
   addForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const title = document.getElementById("f_title").value.trim();
     const author = document.getElementById("f_author").value.trim();
     const link = document.getElementById("f_link").value.trim();
     const site = siteValue;
+
+    if(checkDuplicateOnBlur()) return;
     const genreKeywords = document.getElementById("f_genre").value
       .split(",").map(s => s.trim()).filter(Boolean);
     const pairingKeywords = document.getElementById("f_pairing").value
