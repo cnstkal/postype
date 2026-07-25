@@ -437,6 +437,7 @@
   }
   .post-card:hover{border-color:var(--accent);}
   .post-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+  .post-top-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
   .post-title{
     font-family:'Pretendard', sans-serif;
     font-weight:700;
@@ -1057,9 +1058,13 @@
         render();
       };
 
+      const right = document.createElement("div");
+      right.className = "post-top-right";
+      right.appendChild(author);
+      right.appendChild(star);
+
       top.appendChild(a);
-      top.appendChild(author);
-      top.appendChild(star);
+      top.appendChild(right);
       card.appendChild(top);
 
       const badgeRow = document.createElement("div");
@@ -1134,7 +1139,6 @@
         card.appendChild(kwWrap);
       }
 
-      addChipRow(genreList, "genre", "장르");
       addChipRow(pairingList, "pairing", "공수");
       addChipRow(post.cp || [], "cp", "CP");
 
