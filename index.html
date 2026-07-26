@@ -495,6 +495,7 @@
     content:"·"; color:var(--line); margin:0 7px; text-decoration:none;
   }
   .tag-line .kw.cp{color:#7A3FC2; font-weight:600;}
+  .tag-line .kw.genre{color:#2F5CE0;}
   .card-actions{
     display:flex; gap:12px; justify-self:flex-end; margin-left:auto;
   }
@@ -1168,6 +1169,7 @@
         card.appendChild(kwWrap);
       }
 
+      addChipRow(genreList, "genre", "장르");
       addChipRow(pairingList, "pairing", "공수");
       addChipRow(post.cp || [], "cp", "CP");
 
